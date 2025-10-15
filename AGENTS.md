@@ -19,9 +19,10 @@ Convert the Microsoft-owned Fluent UI regular, filled, and color icon sets into 
 - `scripts/path_parser.py`: Simplifies and normalizes SVG path data for downstream conversion.
 - `scripts/svg_to_excalidraw.py`: Converts cached SVGs into `.excalidraw` scenes using a consistent sketch style (4× scale, stroke `#1e1e1e`, fill `#1971c2` where applicable, roughness 1).
 - `scripts/combine_excalidraw.py`: Groups individual scenes into larger boards. Handles layout geometry and variant filtering.
+- `config/icon_categories.json`: Maintains keyword buckets for the category grouping strategy.
 - `vendor/icons/`: Cached Fluent UI SVG payloads, mirroring upstream paths.
 - `metadata/`: JSON manifest describing every downloaded icon.
-- `artifacts/`: Generated Excalidraw scenes (`artifacts/excalidraw`) and optional grouped boards (`artifacts/excalidraw_groups`). Git ignores this directory.
+- `artifacts/`: Generated Excalidraw scenes (`artifacts/excalidraw`) and optional grouped boards (`artifacts/excalidraw_categories`). Git ignores this directory.
 
 ## Core Workflows
 
@@ -54,8 +55,8 @@ Outputs one `.excalidraw` file per source SVG. Summary metrics (processed, conve
 ```bash
 python3 scripts/combine_excalidraw.py \
   --input-dir artifacts/excalidraw \
-  --output artifacts/excalidraw_groups \
-  --group-by first-word \
+  --output artifacts/excalidraw_categories \
+  --group-by category \
   --columns 8 \
   --cell-width 220 \
   --cell-height 240 \
@@ -65,14 +66,16 @@ python3 scripts/combine_excalidraw.py \
 ```
 
 Important options:
-- `--group-by`: `none`, `directory`, `letter`, `first-word`, or `batch`.
+- `--group-by`: `none`, `directory`, `letter`, `first-word`, `category`, or `batch`.
 - `--batch-size`: size per board when using `batch` grouping.
 - `--exclude-regular`: omit `_regular` and `_light` variants while keeping filled/color icons.
 - When grouping (`group-by != none`), `--output` must point to a directory.
+- Category mode heuristically sorts icons into typography, communication, people, navigation, scheduling, data, organization, media, devices, security, commerce, travel, places, nature, health, utilities, symbols, and a final Other bucket.
+- Override the default categories with `--categories-file PATH` or edit `config/icon_categories.json` directly.
 
 ## Regeneration Checklist
 
-1. (Optional) Clear previous artifacts: `rm -rf artifacts/excalidraw artifacts/excalidraw_groups`.
+1. (Optional) Clear previous artifacts: `rm -rf artifacts/excalidraw artifacts/excalidraw_categories`.
 2. Fetch new or updated icons (`fetch_icons.py`).
 3. Convert to individual Excalidraw files (`svg_to_excalidraw.py`).
 4. Combine into boards as needed (`combine_excalidraw.py`).

@@ -41,12 +41,12 @@ jobs:
             --output artifacts/all_icons.excalidraw \
             --exclude-regular
 
-      - name: Group icons by first word
+      - name: Group icons into categories
         run: |
           python scripts/combine_excalidraw.py \
             --input-dir artifacts/excalidraw \
-            --output artifacts/excalidraw_groups \
-            --group-by first-word \
+            --output artifacts/excalidraw_categories \
+            --group-by category \
             --columns 8 \
             --cell-width 220 \
             --cell-height 240 \
@@ -58,7 +58,7 @@ jobs:
         run: |
           mkdir -p dist
           zip -r dist/excalidraw-scenes.zip artifacts/excalidraw
-          zip -r dist/excalidraw-groups-first-word.zip artifacts/excalidraw_groups
+          zip -r dist/excalidraw-groups-categories.zip artifacts/excalidraw_categories
           cp artifacts/all_icons.excalidraw dist/all_icons.excalidraw
           cp metadata/icons.json dist/icons-metadata.json
 
@@ -101,8 +101,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/excalidraw-groups-first-word.zip
-          asset_name: excalidraw-groups-first-word-${{ steps.release_meta.outputs.version }}.zip
+          asset_path: dist/excalidraw-groups-categories.zip
+          asset_name: excalidraw-groups-categories-${{ steps.release_meta.outputs.version }}.zip
           asset_content_type: application/zip
 
       - name: Upload combined board

@@ -10,6 +10,10 @@ from pathlib import Path
 from typing import Dict, Iterable, List, Sequence, Tuple
 
 STROKE_COLOR = "#1e1e1e"
+CATEGORIES_FILE_DEFAULT = Path(__file__).resolve().parent.parent / "config/icon_categories.json"
+CATEGORY_KEYWORD_SETS: List[Tuple[str, set[str]]] = []
+CATEGORY_ORDER: Dict[str, int] = {}
+OTHER_CATEGORY = "Other"
 DEFAULT_COLUMNS = 12
 DEFAULT_CELL_WIDTH = 220.0
 DEFAULT_CELL_HEIGHT = 240.0
@@ -21,6 +25,38 @@ TEXT_WIDTH_FACTOR = 0.6
 
 class CombineError(Exception):
     pass
+
+
+def _load_category_config(config_path: Path) -> Tuple[List[Tuple[str, set[str]]], Dict[str, int]]:
+    if not config_path.exists():
+        raise CombineError(f"Category config not found: {config_path}")
+    with config_path.open("r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    if not isinstance(payload, dict):
+        raise CombineError("Category config must map category names to keyword arrays")
+    keyword_sets: List[Tuple[str, set[str]]] = []
+    order: Dict[str, int] = {}
+    for index, (name, keywords) in enumerate(payload.items()):
+        if not isinstance(name, str):
+            raise CombineError("Category names must be strings")
+        if not isinstance(keywords, list):
+            raise CombineError(f"Keywords for category '{name}' must be provided as an array")
+        normalized = {str(keyword).strip().lower() for keyword in keywords if str(keyword).strip()}
+        keyword_sets.append((name, normalized))
+        order[name] = index
+    if not keyword_sets:
+        raise CombineError(f"Category config {config_path} did not define any categories")
+    return keyword_sets, order
+
+
+def _initialize_categories(config_path: Path) -> None:
+    keyword_sets, order = _load_category_config(config_path)
+    global CATEGORY_KEYWORD_SETS, CATEGORY_ORDER
+    CATEGORY_KEYWORD_SETS = keyword_sets
+    CATEGORY_ORDER = order
+
+
+_initialize_categories(CATEGORIES_FILE_DEFAULT)
 
 
 def _now_ms() -> int:
@@ -101,6 +137,25 @@ def _first_label_token(path: Path) -> str:
     label = _normalize_label_from_path(path)
     token = label.split()[0] if label else "#"
     return token or "#"
+
+
+def _tokenize_label(path: Path) -> List[str]:
+    label = _normalize_label_from_path(path)
+    tokens: List[str] = []
+    for token in label.split():
+        lowered = token.lower()
+        tokens.append(lowered)
+        if lowered.endswith("s") and len(lowered) > 3:
+            tokens.append(lowered[:-1])
+    return tokens
+
+
+def _categorize_icon(path: Path) -> str:
+    tokens = _tokenize_label(path)
+    for category, keyword_set in CATEGORY_KEYWORD_SETS:
+        if any(token in keyword_set for token in tokens):
+            return category
+    return OTHER_CATEGORY
 
 
 def _create_text_element(text: str, x: float, y: float) -> Dict:
@@ -193,6 +248,18 @@ def _group_files(
             key = _first_label_token(file_path)
             groups[key].append(file_path)
         return sorted(groups.items(), key=lambda item: item[0].lower())
+    if strategy == "category":
+        groups = defaultdict(list)
+        for file_path in files:
+            category = _categorize_icon(file_path)
+            groups[category].append(file_path)
+
+        def _sort_key(item: Tuple[str, List[Path]]) -> Tuple[int, str]:
+            name = item[0]
+            order = CATEGORY_ORDER.get(name, len(CATEGORY_ORDER))
+            return order, name.lower()
+
+        return sorted(groups.items(), key=_sort_key)
     if strategy == "batch":
         if not batch_size or batch_size <= 0:
             raise CombineError("Batch grouping requires a positive --batch-size value")
@@ -346,7 +413,7 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--group-by",
-        choices=["none", "directory", "letter", "first-word", "batch"],
+        choices=["none", "directory", "letter", "first-word", "category", "batch"],
         default="none",
         help="Optional grouping strategy to split output into multiple files",
     )
@@ -361,11 +428,22 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Skip icons ending with _regular (color variants are kept)",
     )
+    parser.add_argument(
+        "--categories-file",
+        type=Path,
+        default=None,
+        help=(
+            "JSON file mapping category names to keyword lists when using --group-by category. "
+            "Defaults to config/icon_categories.json relative to this script."
+        ),
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
+    categories_source = args.categories_file or CATEGORIES_FILE_DEFAULT
+    _initialize_categories(categories_source)
     files = _filter_by_variant(_gather_icon_files(args.input_dir), args.exclude_regular)
     if not files:
         raise CombineError(f"No .excalidraw files found under {args.input_dir}")

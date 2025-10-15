@@ -42,6 +42,7 @@ scripts/
   path_parser.py        # Parses and simplifies SVG path data
   svg_to_excalidraw.py  # Converts SVGs into Excalidraw scenes
   combine_excalidraw.py # Bundles per-icon scenes into grouped boards
+config/                 # Category keyword configuration for grouped boards
 metadata/               # Generated icon metadata
 vendor/icons/           # Cached Fluent UI SVG assets
 ```
@@ -74,7 +75,7 @@ Each file is a valid Excalidraw scene that can be opened directly in the Excalid
 
 ## 3. Combine icons into larger Excalidraw boards (optional)
 
-The combine script lets you assemble the per-icon scenes into grouped boards to reduce file size and improve navigation. By default it merges everything into a single file, but you can group by top-level directory, leading letter, first-word category, or fixed-size batches.
+The combine script lets you assemble the per-icon scenes into grouped boards to reduce file size and improve navigation. By default it merges everything into a single file, but you can group by top-level directory, leading letter, curated categories, first-word buckets, or fixed-size batches.
 
 Generate a single board with all icons:
 
@@ -86,13 +87,13 @@ python3 scripts/combine_excalidraw.py \
 
 Add `--exclude-regular` if you want to omit the `_regular` variants while keeping filled and color icons in the combined board.
 
-Group files by the first word of the icon name (e.g., all `Mail_*` icons together):
+Group files into curated categories (Navigation & Maps, Typography & Documents, and so on):
 
 ```bash
 python3 scripts/combine_excalidraw.py \
   --input-dir artifacts/excalidraw \
-  --output artifacts/excalidraw_groups \
-  --group-by first-word \
+  --output artifacts/excalidraw_categories \
+  --group-by category \
   --columns 8 \
   --cell-width 220 \
   --cell-height 240 \
@@ -101,7 +102,9 @@ python3 scripts/combine_excalidraw.py \
   --exclude-regular
 ```
 
-Grouping writes one `.excalidraw` file per category into the target directory. The numeric layout options let you tweak spacing if some categories become crowded.
+Grouping writes one `.excalidraw` file per bucket into the target directory. The numeric layout options let you tweak spacing if some categories become crowded. Use `--group-by first-word` or `--group-by directory` when you need the older strategies.
+
+Category buckets include typography, communication, people, navigation, scheduling, data, organization, media, devices, security, commerce, travel, places, nature, health, utilities, and general symbols, with a fallback `Other` set for unmatched icons. Adjust the mapping by editing `config/icon_categories.json` or supply a custom file via `--categories-file` when running the combine script.
 
 ### Supported grouping strategies
 
@@ -109,6 +112,7 @@ Grouping writes one `.excalidraw` file per category into the target directory. T
 - `directory`: group by the first directory under the input folder.
 - `letter`: group by the first letter of the icon's label.
 - `first-word`: group by the first word in the icon label (for example `Mail`, `Accessibility`).
+- `category`: heuristic buckets such as Typography & Documents, Communication & Collaboration, Navigation & Maps, and more.
 - `batch`: fixed-size batches using `--batch-size`.
 
 When `--group-by` is not `none`, the value provided to `--output` should be a directory path where grouped files are written.
@@ -117,13 +121,13 @@ When `--group-by` is not `none`, the value provided to `--output` should be a di
 
 Whenever you tweak the conversion logic:
 
-1. Clear prior outputs if needed: `rm -rf artifacts/excalidraw artifacts/excalidraw_groups`.
+1. Clear prior outputs if needed: `rm -rf artifacts/excalidraw artifacts/excalidraw_categories`.
 2. Re-run `svg_to_excalidraw.py` to rebuild per-icon files.
 3. Re-run `combine_excalidraw.py` with your preferred grouping.
 
 ## Automated releases
 
-A scheduled GitHub Actions workflow (`.github/workflows/release.yml`) rebuilds the full icon cache, converts every SVG into Excalidraw scenes, generates grouped boards (first-word strategy), and publishes the outputs as a release. Trigger it manually from the Actions tab or let the weekly schedule refresh the published archives.
+A scheduled GitHub Actions workflow (`.github/workflows/release.yml`) rebuilds the full icon cache, converts every SVG into Excalidraw scenes, generates category-based grouped boards, and publishes the outputs as a release. Trigger it manually from the Actions tab or let the weekly schedule refresh the published archives. Adjust the categories by editing `config/icon_categories.json` before running the workflow if you need different buckets.
 
 ## Opening the results in Excalidraw
 
