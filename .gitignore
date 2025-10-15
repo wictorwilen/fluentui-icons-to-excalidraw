@@ -1,0 +1,22 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# Editor settings
+.vscode/
+.idea/
+
+# Generated assets
+artifacts/
+vendor/
+
+# Misc
+.DS_Store
