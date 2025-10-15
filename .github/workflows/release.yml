@@ -1,0 +1,126 @@
+name: Build Excalidraw Release
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * 1'
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch Fluent UI SVG assets
+        run: |
+          python scripts/fetch_icons.py \
+            --output metadata/icons.json \
+            --download-dir vendor/icons \
+            --force
+
+      - name: Convert icons to Excalidraw
+        run: |
+          python scripts/svg_to_excalidraw.py \
+            --input-dir vendor/icons/assets \
+            --output-dir artifacts/excalidraw
+
+      - name: Combine all icons into a single board
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw \
+            --output artifacts/all_icons.excalidraw \
+            --exclude-regular
+
+      - name: Group icons by first word
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw \
+            --output artifacts/excalidraw_groups \
+            --group-by first-word \
+            --columns 8 \
+            --cell-width 220 \
+            --cell-height 240 \
+            --padding 24 \
+            --label-gap 12 \
+            --exclude-regular
+
+      - name: Package release assets
+        run: |
+          mkdir -p dist
+          zip -r dist/excalidraw-scenes.zip artifacts/excalidraw
+          zip -r dist/excalidraw-groups-first-word.zip artifacts/excalidraw_groups
+          cp artifacts/all_icons.excalidraw dist/all_icons.excalidraw
+          cp metadata/icons.json dist/icons-metadata.json
+
+      - name: Upload workflow artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: excalidraw-release-assets
+          path: dist
+
+      - name: Determine release tag
+        id: release_meta
+        run: |
+          VERSION="excalidraw-$(date -u +'%Y%m%d-%H%M%SZ')"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.release_meta.outputs.version }}
+          release_name: Fluent UI Excalidraw ${{ steps.release_meta.outputs.version }}
+          draft: false
+          prerelease: false
+
+      - name: Upload scenes archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-scenes.zip
+          asset_name: excalidraw-scenes-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload grouped boards archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-groups-first-word.zip
+          asset_name: excalidraw-groups-first-word-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload combined board
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/all_icons.excalidraw
+          asset_name: all-icons-${{ steps.release_meta.outputs.version }}.excalidraw
+          asset_content_type: application/json
+
+      - name: Upload icon metadata
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/icons-metadata.json
+          asset_name: icons-metadata-${{ steps.release_meta.outputs.version }}.json
+          asset_content_type: application/json

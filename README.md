@@ -1,12 +1,12 @@
 # Fluent UI Icons to Excalidraw
 
-This project automates converting the Fluent UI 24px regular and filled icons into Excalidraw scenes that look hand drawn. It downloads the source SVGs directly from the upstream repository, converts each icon into Excalidraw primitives (lines, rectangles, ellipses, text) using a sketchy style, and can bundle the results into grouped Excalidraw boards for easier browsing.
+This project automates converting the [Fluent UI](https://fluent2.microsoft.design/) regular, filled, and color icons—designed and owned by Microsoft—into Excalidraw scenes that look hand drawn. It downloads the source SVGs directly from the upstream repository, converts each icon into Excalidraw primitives (lines, rectangles, ellipses, text) using a sketchy style, and can bundle the results into grouped Excalidraw boards for easier browsing.
 
 > **Note:** Every script, configuration, and generated artifact in this repository was authored end-to-end by GitHub Copilot. No manual code lines were written by hand.
 
 ## Features
 
-- Fetches the entire Fluent UI 24px icon set without cloning the upstream repo.
+- Fetches the Fluent UI icon set without cloning the upstream repo.
 - Converts SVG geometry into Excalidraw primitives (lines, rectangles, ellipses) with simplified polylines for a hand-drawn look.
 - Applies consistent styling: stroke width 2, stroke color `#1e1e1e`, filled backgrounds `#1971c2`, roughness 1, roundness type 3, and 4x scaling.
 - Detects circular and square path loops to use native Excalidraw ellipses and rectangles.
@@ -31,25 +31,25 @@ pip install --upgrade pip
 ```
 artifacts/              # Generated Excalidraw outputs (ignored by git)
 scripts/
-  fetch_24px_icons.py   # Downloads metadata and SVG assets
+  fetch_icons.py        # Downloads metadata and SVG assets
   path_parser.py        # Parses and simplifies SVG path data
   svg_to_excalidraw.py  # Converts SVGs into Excalidraw scenes
   combine_excalidraw.py # Bundles per-icon scenes into grouped boards
-vendor/icons_24px/      # Cached Fluent UI SVG assets
+metadata/               # Generated icon metadata
+vendor/icons/           # Cached Fluent UI SVG assets
 ```
 
-## 1. Download the Fluent UI 24px SVG assets
-
-Run the fetch script to download all regular and filled 24px icons into `vendor/icons_24px/assets`. Set `GITHUB_TOKEN` if you have one to raise rate limits.
+## 1. Download the Fluent UI SVG assets
+Run the fetch script to download the required icons into `vendor/icons/assets`. Set `GITHUB_TOKEN` if you have one to raise rate limits.
 
 ```bash
-python3 scripts/fetch_24px_icons.py \
-  --output scripts/icons_24px.json \
-  --download-dir vendor/icons_24px \
+python3 scripts/fetch_icons.py \
+  --output metadata/icons.json \
+  --download-dir vendor/icons \
   --force
 ```
 
-The script writes metadata to `scripts/icons_24px.json` and populates the SVG directory mirroring the upstream structure.
+The script writes metadata to `metadata/icons.json` and populates the SVG directory mirroring the upstream structure.
 
 ## 2. Convert SVG icons to individual Excalidraw files
 
@@ -57,7 +57,7 @@ Once the SVG assets exist locally, convert them into Excalidraw JSON scenes:
 
 ```bash
 python3 scripts/svg_to_excalidraw.py \
-  --input-dir vendor/icons_24px/assets \
+  --input-dir vendor/icons/assets \
   --output-dir artifacts/excalidraw
 ```
 
@@ -77,6 +77,8 @@ python3 scripts/combine_excalidraw.py \
   --output artifacts/all_icons.excalidraw
 ```
 
+Add `--exclude-regular` if you want to omit the `_regular` variants while keeping filled and color icons in the combined board.
+
 Group files by the first word of the icon name (e.g., all `Mail_*` icons together):
 
 ```bash
@@ -88,7 +90,8 @@ python3 scripts/combine_excalidraw.py \
   --cell-width 220 \
   --cell-height 240 \
   --padding 24 \
-  --label-gap 12
+  --label-gap 12 \
+  --exclude-regular
 ```
 
 Grouping writes one `.excalidraw` file per category into the target directory. The numeric layout options let you tweak spacing if some categories become crowded.
@@ -111,6 +114,10 @@ Whenever you tweak the conversion logic:
 2. Re-run `svg_to_excalidraw.py` to rebuild per-icon files.
 3. Re-run `combine_excalidraw.py` with your preferred grouping.
 
+## Automated releases
+
+A scheduled GitHub Actions workflow (`.github/workflows/release.yml`) rebuilds the full icon cache, converts every SVG into Excalidraw scenes, generates grouped boards (first-word strategy), and publishes the outputs as a release. Trigger it manually from the Actions tab or let the weekly schedule refresh the published archives.
+
 ## Opening the results in Excalidraw
 
 1. Visit [https://excalidraw.com](https://excalidraw.com) (or a self-hosted instance).
@@ -122,3 +129,5 @@ Whenever you tweak the conversion logic:
 This repository only contains generated artifacts and helper scripts. The underlying Fluent UI icon designs belong to Microsoft and are subject to their original licensing. Review the [Fluent UI System Icons license](https://github.com/microsoft/fluentui-system-icons) before redistributing any generated assets.
 
 All code and documentation in this project were generated by GitHub Copilot without manual editing.
+
+The code in this repository is distributed under the [MIT License](LICENSE). Fluent UI and the Fluent UI icon set are trademarks of Microsoft Corporation; their assets remain licensed under the terms of the [Fluent UI System Icons repository](https://github.com/microsoft/fluentui-system-icons).

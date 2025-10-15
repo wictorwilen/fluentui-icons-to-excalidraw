@@ -14,8 +14,8 @@ DEFAULT_COLUMNS = 12
 DEFAULT_CELL_WIDTH = 220.0
 DEFAULT_CELL_HEIGHT = 240.0
 DEFAULT_PADDING = 24.0
-DEFAULT_LABEL_GAP = 12.0
-LABEL_FONT_SIZE = 28.0
+DEFAULT_LABEL_GAP = 8.0
+LABEL_FONT_SIZE = 20.0
 TEXT_WIDTH_FACTOR = 0.6
 
 
@@ -92,7 +92,8 @@ def _normalize_label_from_path(path: Path) -> str:
     prefix = "ic_fluent_"
     if stem.startswith(prefix):
         stem = stem[len(prefix) :]
-    parts = [part for part in stem.split("_") if part and part != "24"]
+    size_tokens = {"12", "14", "16", "18", "20", "24", "28", "32", "36", "40", "48", "64", "96"}
+    parts = [part for part in stem.split("_") if part and not (part.isdigit() and part in size_tokens)]
     return " ".join(part.capitalize() for part in parts) if parts else path.stem
 
 
@@ -144,6 +145,18 @@ def _create_text_element(text: str, x: float, y: float) -> Dict:
 
 def _gather_icon_files(input_dir: Path) -> List[Path]:
     return sorted(input_dir.rglob("*.excalidraw"))
+
+
+def _filter_by_variant(files: Iterable[Path], exclude_regular: bool) -> List[Path]:
+    if not exclude_regular:
+        return list(files)
+    filtered: List[Path] = []
+    for path in files:
+        stem = path.stem.lower()
+        if "_color" not in stem and (stem.endswith("_regular") or stem.endswith("_light")):
+            continue
+        filtered.append(path)
+    return filtered
 
 
 def _group_files(
@@ -254,12 +267,14 @@ def combine_icons(
     cell_height: float,
     padding: float,
     label_gap: float,
+    exclude_regular: bool,
     files: Sequence[Path] | None = None,
 ) -> None:
     if files is None:
         files = [path for path in _gather_icon_files(input_dir) if path != output_file]
     else:
         files = [path for path in files if path != output_file]
+    files = _filter_by_variant(files, exclude_regular)
     if not files:
         raise CombineError(f"No .excalidraw files found under {input_dir}")
     elements = _layout_icons(
@@ -330,8 +345,8 @@ def parse_args() -> argparse.Namespace:
         help="Vertical gap between the icon and its label",
     )
     parser.add_argument(
-    "--group-by",
-    choices=["none", "directory", "letter", "first-word", "batch"],
+        "--group-by",
+        choices=["none", "directory", "letter", "first-word", "batch"],
         default="none",
         help="Optional grouping strategy to split output into multiple files",
     )
@@ -341,12 +356,17 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Number of icons per batch when using --group-by batch",
     )
+    parser.add_argument(
+        "--exclude-regular",
+        action="store_true",
+        help="Skip icons ending with _regular (color variants are kept)",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
-    files = _gather_icon_files(args.input_dir)
+    files = _filter_by_variant(_gather_icon_files(args.input_dir), args.exclude_regular)
     if not files:
         raise CombineError(f"No .excalidraw files found under {args.input_dir}")
     grouping = _group_files(
@@ -364,6 +384,7 @@ def main() -> None:
             cell_height=args.cell_height,
             padding=args.padding,
             label_gap=args.label_gap,
+            exclude_regular=args.exclude_regular,
             files=files,
         )
         return
@@ -389,6 +410,7 @@ def main() -> None:
             cell_height=args.cell_height,
             padding=args.padding,
             label_gap=args.label_gap,
+            exclude_regular=args.exclude_regular,
             files=group_files,
         )
 
