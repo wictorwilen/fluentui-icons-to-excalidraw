@@ -4,6 +4,13 @@ This project automates converting the [Fluent UI](https://fluent2.microsoft.desi
 
 > **Note:** Every script, configuration, and generated artifact in this repository was authored end-to-end by GitHub Copilot. No manual code lines were written by hand.
 
+## Downloading released artifacts
+
+1. Open the repository's [Releases](https://github.com/wictorwilen/fluentui-icons-to-excalidraw/releases) page.
+2. Locate the latest release (or the specific tag you need) and expand the **Assets** section.
+3. Download the desired `.zip` bundle, such as `excalidraw_scenes.zip` or grouped board archives, and extract it locally.
+4. Import the `.excalidraw` files into Excalidraw using *Menu → Open*.
+
 ## Features
 
 - Fetches the Fluent UI icon set without cloning the upstream repo.
