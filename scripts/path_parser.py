@@ -10,6 +10,7 @@ Point = Tuple[float, float]
 COMMANDS = set("MmLlHhVvCcSsZz")
 _TOKEN_RE = re.compile(r"[MmLlHhVvCcSsZz]|-?\d*\.?\d+(?:[eE][+-]?\d+)?")
 SIMPLIFY_EPSILON = 0.2
+SIMPLIFY_RELATIVE_SCALE = 0.02
 
 
 class PathParseError(ValueError):
@@ -234,7 +235,12 @@ def simplify_polyline(points: Sequence[Point], epsilon: float) -> List[Point]:
     else:
         working = points
 
-    simplified = _rdp(working, epsilon)
+    xs = [p[0] for p in working]
+    ys = [p[1] for p in working]
+    max_dim = max((max(xs) - min(xs)), (max(ys) - min(ys)))
+    effective_epsilon = max(epsilon, max_dim * SIMPLIFY_RELATIVE_SCALE)
+
+    simplified = _rdp(working, effective_epsilon)
     if closed:
         if simplified[0] != simplified[-1]:
             simplified.append(simplified[0])

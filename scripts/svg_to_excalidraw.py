@@ -27,6 +27,7 @@ FILLED_BACKGROUND_COLOR = "#1971c2"
 OVERLAY_COLOR = "#ffffff"
 GEOM_RATIO_TOLERANCE = 0.12
 GEOM_POINT_TOLERANCE = 0.4
+CIRCLE_RADIAL_TOLERANCE = 0.1
 
 
 def _roundness() -> dict:
@@ -81,7 +82,7 @@ def _circle_bounds(points: Sequence[Point]) -> Optional[Tuple[float, float, floa
     cx = min_x + width / 2
     cy = min_y + height / 2
     radius = (width + height) / 4
-    tolerance = max(radius * 0.2, GEOM_POINT_TOLERANCE)
+    tolerance = max(radius * CIRCLE_RADIAL_TOLERANCE, GEOM_POINT_TOLERANCE)
     for x, y in pts:
         dist = math.hypot(x - cx, y - cy)
         if abs(dist - radius) > tolerance:
