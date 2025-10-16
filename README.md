@@ -106,6 +106,33 @@ Grouping writes one `.excalidraw` file per bucket into the target directory. The
 
 Category buckets include typography, communication, people, navigation, scheduling, data, organization, media, devices, security, commerce, travel, places, nature, health, utilities, and general symbols, with a fallback `Other` set for unmatched icons. Adjust the mapping by editing `config/icon_categories.json` or supply a custom file via `--categories-file` when running the combine script.
 
+### Export as Excalidraw libraries
+
+Use the `--library` flag to emit reusable `.excalidrawlib` bundles instead of full scenes. Each icon is normalized to start at the origin and grouped so it appears as a single library item once imported into Excalidraw.
+
+Create a single library file that contains every icon (regular variants excluded in this example):
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/excalidraw_library/icons.excalidrawlib \
+  --library \
+  --exclude-regular
+```
+
+Generate one library file per curated category:
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/excalidraw_library_categories \
+  --group-by category \
+  --library \
+  --exclude-regular
+```
+
+Import the resulting `.excalidrawlib` files inside the Excalidraw editor via *Library → Open → Load*. Each icon appears as an individual drag-and-drop item that you can pin to your personal collection.
+
 ### Supported grouping strategies
 
 - `none` (default): everything merged into the provided `--output` path.

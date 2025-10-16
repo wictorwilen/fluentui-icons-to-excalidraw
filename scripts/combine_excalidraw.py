@@ -325,6 +325,45 @@ def _layout_icons(
     return combined
 
 
+def _normalize_icon_elements(elements: Sequence[Dict]) -> List[Dict]:
+    if not elements:
+        return []
+    min_x, min_y, _, _ = _collection_bounds(elements)
+    normalized: List[Dict] = []
+    for element in elements:
+        normalized.append(_clone_element(element, -min_x, -min_y))
+    group_id = str(uuid.uuid4())
+    for element in normalized:
+        group_ids = list(element.get("groupIds", []))
+        if group_id not in group_ids:
+            group_ids.append(group_id)
+        element["groupIds"] = group_ids
+    return normalized
+
+
+def _build_library_items(files: Sequence[Path]) -> List[Dict]:
+    items: List[Dict] = []
+    now = _now_ms()
+    for file_path in files:
+        elements = _load_elements(file_path)
+        if not elements:
+            continue
+        normalized = _normalize_icon_elements(elements)
+        if not normalized:
+            continue
+        items.append(
+            {
+                "id": str(uuid.uuid4()),
+                "status": "unpublished",
+                "name": _normalize_label_from_path(file_path),
+                "created": now,
+                "updated": now,
+                "elements": normalized,
+            }
+        )
+    return items
+
+
 def combine_icons(
     *,
     input_dir: Path,
@@ -335,6 +374,7 @@ def combine_icons(
     padding: float,
     label_gap: float,
     exclude_regular: bool,
+    as_library: bool,
     files: Sequence[Path] | None = None,
 ) -> None:
     if files is None:
@@ -344,24 +384,35 @@ def combine_icons(
     files = _filter_by_variant(files, exclude_regular)
     if not files:
         raise CombineError(f"No .excalidraw files found under {input_dir}")
-    elements = _layout_icons(
-        files,
-        columns=columns,
-        cell_width=cell_width,
-        cell_height=cell_height,
-        padding=padding,
-        label_gap=label_gap,
-    )
-    document = {
-        "type": "excalidraw",
-        "version": 2,
-        "source": "fluentui-icons-to-excalidraw",
-        "elements": elements,
-        "appState": {
-            "gridSize": None,
-        },
-        "files": {},
-    }
+    if as_library:
+        library_items = _build_library_items(files)
+        if not library_items:
+            raise CombineError("No elements available to add to the library")
+        document = {
+            "type": "excalidrawlib",
+            "version": 2,
+            "source": "fluentui-icons-to-excalidraw",
+            "libraryItems": library_items,
+        }
+    else:
+        elements = _layout_icons(
+            files,
+            columns=columns,
+            cell_width=cell_width,
+            cell_height=cell_height,
+            padding=padding,
+            label_gap=label_gap,
+        )
+        document = {
+            "type": "excalidraw",
+            "version": 2,
+            "source": "fluentui-icons-to-excalidraw",
+            "elements": elements,
+            "appState": {
+                "gridSize": None,
+            },
+            "files": {},
+        }
     output_file.parent.mkdir(parents=True, exist_ok=True)
     with output_file.open("w", encoding="utf-8") as handle:
         json.dump(document, handle, indent=2)
@@ -437,6 +488,11 @@ def parse_args() -> argparse.Namespace:
             "Defaults to config/icon_categories.json relative to this script."
         ),
     )
+    parser.add_argument(
+        "--library",
+        action="store_true",
+        help="Emit an Excalidraw library (.excalidrawlib) instead of a single scene",
+    )
     return parser.parse_args()
 
 
@@ -453,6 +509,8 @@ def main() -> None:
         strategy=args.group_by,
         batch_size=args.batch_size,
     )
+    if args.library and args.output.suffix.lower() == ".excalidraw":
+        args.output = args.output.with_suffix(".excalidrawlib")
     if args.group_by == "none":
         combine_icons(
             input_dir=args.input_dir,
@@ -463,6 +521,7 @@ def main() -> None:
             padding=args.padding,
             label_gap=args.label_gap,
             exclude_regular=args.exclude_regular,
+            as_library=args.library,
             files=files,
         )
         return
@@ -479,7 +538,8 @@ def main() -> None:
         if not group_files:
             continue
         safe_name = re.sub(r"[^A-Za-z0-9_-]+", "_", group_name.strip()) or "group"
-        target_path = output_dir / f"{safe_name}.excalidraw"
+        extension = ".excalidrawlib" if args.library else ".excalidraw"
+        target_path = output_dir / f"{safe_name}{extension}"
         combine_icons(
             input_dir=args.input_dir,
             output_file=target_path,
@@ -489,6 +549,7 @@ def main() -> None:
             padding=args.padding,
             label_gap=args.label_gap,
             exclude_regular=args.exclude_regular,
+            as_library=args.library,
             files=group_files,
         )
 

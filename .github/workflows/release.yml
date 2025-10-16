@@ -54,12 +54,32 @@ jobs:
             --label-gap 12 \
             --exclude-regular
 
+      - name: Build full icon library bundle
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw \
+            --output artifacts/excalidraw_library/icons.excalidrawlib \
+            --library \
+            --exclude-regular
+
+      - name: Build category libraries
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw \
+            --output artifacts/excalidraw_library_categories \
+            --group-by category \
+            --library \
+            --exclude-regular
+
       - name: Package release assets
         run: |
           mkdir -p dist
           zip -r dist/excalidraw-scenes.zip artifacts/excalidraw
           zip -r dist/excalidraw-groups-categories.zip artifacts/excalidraw_categories
+          zip -r dist/excalidraw-library.zip artifacts/excalidraw_library
+          zip -r dist/excalidraw-library-categories.zip artifacts/excalidraw_library_categories
           cp artifacts/all_icons.excalidraw dist/all_icons.excalidraw
+          cp artifacts/excalidraw_library/icons.excalidrawlib dist/icons-library.excalidrawlib
           cp metadata/icons.json dist/icons-metadata.json
 
       - name: Upload workflow artifacts
@@ -105,6 +125,26 @@ jobs:
           asset_name: excalidraw-groups-categories-${{ steps.release_meta.outputs.version }}.zip
           asset_content_type: application/zip
 
+      - name: Upload library archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-library.zip
+          asset_name: excalidraw-library-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload category library archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-library-categories.zip
+          asset_name: excalidraw-library-categories-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
       - name: Upload combined board
         uses: actions/upload-release-asset@v1
         env:
@@ -113,6 +153,16 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/all_icons.excalidraw
           asset_name: all-icons-${{ steps.release_meta.outputs.version }}.excalidraw
+          asset_content_type: application/json
+
+      - name: Upload icon library
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/icons-library.excalidrawlib
+          asset_name: icons-library-${{ steps.release_meta.outputs.version }}.excalidrawlib
           asset_content_type: application/json
 
       - name: Upload icon metadata
