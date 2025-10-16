@@ -86,6 +86,8 @@ Important options:
 - Logging is stdout-based and intended for tailing in CI.
 - Treat `vendor/` and `metadata/` as rebuildable caches—do not commit them.
 - Adjust styling constants (stroke width, colors, scale) inside `svg_to_excalidraw.py` if the visual presentation changes.
+- When you change scripts or add capabilities, update `README.md` so end users see the new behavior and commands.
+- Whenever you introduce a new feature, ask the user whether the GitHub Actions workflow should be updated to cover it before making CI changes.
 
 ## Licensing and Attribution
 
