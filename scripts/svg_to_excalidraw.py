@@ -425,6 +425,58 @@ def _bounds_contains(outer: tuple[float, float, float, float], inner: tuple[floa
     )
 
 
+def _element_center(bounds: tuple[float, float, float, float]) -> tuple[float, float]:
+    """Calculate the center point of element bounds."""
+    min_x, min_y, max_x, max_y = bounds
+    return (min_x + max_x) / 2, (min_y + max_y) / 2
+
+
+def _point_in_polygon(point: tuple[float, float], polygon_points: List[List[float]]) -> bool:
+    """Check if a point is inside a polygon using ray casting algorithm."""
+    x, y = point
+    n = len(polygon_points)
+    inside = False
+    
+    p1x, p1y = polygon_points[0]
+    for i in range(1, n + 1):
+        p2x, p2y = polygon_points[i % n]
+        if y > min(p1y, p2y):
+            if y <= max(p1y, p2y):
+                if x <= max(p1x, p2x):
+                    if p1y != p2y:
+                        xinters = (y - p1y) * (p2x - p1x) / (p2y - p1y) + p1x
+                    if p1x == p2x or x <= xinters:
+                        inside = not inside
+        p1x, p1y = p2x, p2y
+    
+    return inside
+
+
+def _is_center_inside_element(center: tuple[float, float], element: dict) -> bool:
+    """Check if a center point is inside the filled area of an element."""
+    # Adjust center point relative to element position
+    element_x = float(element.get("x", 0.0))
+    element_y = float(element.get("y", 0.0))
+    relative_center = (center[0] - element_x, center[1] - element_y)
+    
+    # Get the element's points (for line elements)
+    if element.get("type") == "line":
+        points = element.get("points", [])
+        if len(points) >= 3:  # Need at least 3 points for a polygon
+            return _point_in_polygon(relative_center, points)
+    
+    # For rectangles and ellipses, use simple bounds checking
+    elif element.get("type") in ["rectangle", "ellipse"]:
+        width = float(element.get("width", 0.0))
+        height = float(element.get("height", 0.0))
+        return (0 <= relative_center[0] <= width and 0 <= relative_center[1] <= height)
+    
+    return False
+
+
+
+
+
 def _apply_overlay_colors(elements: List[dict]) -> None:
     base_color = FILLED_BACKGROUND_COLOR.lower()
     filled_info: List[tuple[float, dict, tuple[float, float, float, float], str]] = []
@@ -445,12 +497,40 @@ def _apply_overlay_colors(elements: List[dict]) -> None:
     for area, element, bounds, color in filled_info:
         if color != base_color:
             continue
+        
+        # Get the center point of this element
+        center = _element_center(bounds)
+        
+        # Check if this element's center sits inside any larger filled element
         for larger_area, outer_element, outer_bounds, outer_color in larger_sorted:
             if larger_area <= area:
                 break
             if outer_color != base_color:
                 continue
-            if _bounds_contains(outer_bounds, bounds):
+                
+            # Additional criteria to avoid false positives in complex icons:
+            # 1. The smaller element should be smaller (less than 85% of outer area to allow substantial inner elements)
+            # 2. The inner element should be simple (suggesting a symbol like X, +, checkmark)
+            area_ratio = area / larger_area
+            if area_ratio > 0.85:
+                continue
+                
+            # Count points in inner element - simple symbols typically have fewer points
+            inner_points = element.get("points", [])
+            inner_complexity = len(inner_points) if inner_points else 0
+            
+            # Only apply overlay if inner element is reasonably simple (< 30 points) suggesting a symbol or inner content
+            # Very complex icon parts typically have more points and are likely structural elements
+            if inner_complexity > 30:
+                continue
+            
+            # Check if the center of the smaller element is inside the larger element's filled area
+            if _is_center_inside_element(center, outer_element):
+                element["backgroundColor"] = OVERLAY_COLOR
+                break
+                
+            # Check if the center of the smaller element is inside the larger element's filled area
+            if _is_center_inside_element(center, outer_element):
                 element["backgroundColor"] = OVERLAY_COLOR
                 break
 

@@ -89,6 +89,21 @@ Important options:
 - When you change scripts or add capabilities, update `README.md` so end users see the new behavior and commands.
 - Whenever you introduce a new feature, ask the user whether the GitHub Actions workflow should be updated to cover it before making CI changes.
 
+### **MANDATORY: Changelog Maintenance**
+- **ALWAYS update `CHANGELOG.md`** when making any changes to the codebase, especially fixes, enhancements, or new features
+- **Keep entries concise and high-level** - focus on what changed for users, not how it was implemented
+- **Avoid technical details** like threshold numbers, function names, or code-level specifics
+- Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with categories: Added, Changed, Deprecated, Removed, Fixed, Security
+- Document the impact on end users and visual/functional improvements rather than code-level changes
+- Update the [Unreleased] section for ongoing work, and create version sections when releasing
+
+### **Automated Changelog Updates**
+- **GitHub Action automatically updates changelog** on every push to main and merged PRs
+- **Use conventional commit messages** (feat:, fix:, refactor:, etc.) for automatic categorization
+- **Manual updates still welcome** for major changes or when automatic detection misses important details
+- **Script filters out technical details** and focuses on user-facing improvements
+- Run `./scripts/update-changelog.sh` locally to test changelog generation
+
 ## Licensing and Attribution
 
 - Fluent UI icons remain under the [Fluent UI System Icons license](https://github.com/microsoft/fluentui-system-icons). Review before distributing derived assets.
