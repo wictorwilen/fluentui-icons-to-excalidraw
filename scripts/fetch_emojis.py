@@ -367,6 +367,14 @@ def main() -> int:
     downloaded_count = 0
     failed_downloads = []
     
+    # Count total downloads to be attempted across all emojis
+    total_to_download = 0
+    if not args.no_download:
+        for variants in emoji_index.values():
+            total_to_download += sum(1 for variant in variants if variant.style.lower() == "flat")
+    
+    download_attempt = 0
+    
     for emoji_name, variants in emoji_index.items():
         output_data["emojis"][emoji_name] = {
             "name": emoji_name,
@@ -382,16 +390,24 @@ def main() -> int:
                 should_download = (variant.style.lower() == "flat")
                 
                 if should_download:
+                    download_attempt += 1
                     emoji_path = variant.path
                     if args.download_dir.exists() and not args.force:
                         local_path = args.download_dir / emoji_path
                         if local_path.exists():
+                            # Report progress every 100 attempts or at the end, even for skipped files
+                            if download_attempt % 100 == 0 or download_attempt == total_to_download:
+                                print(f"Downloaded {downloaded_count}/{download_attempt} emojis processed ({total_to_download} total)", file=sys.stderr)
                             continue  # Skip existing files unless force is specified
                     
                     if _download_svg_content(variant.url, args.download_dir, emoji_path):
                         downloaded_count += 1
                     else:
                         failed_downloads.append(emoji_path)
+                    
+                    # Report progress every 100 downloads or at the end
+                    if download_attempt % 100 == 0 or download_attempt == total_to_download:
+                        print(f"Downloaded {downloaded_count}/{download_attempt} emojis processed ({total_to_download} total)", file=sys.stderr)
     
     # Save metadata
     try:

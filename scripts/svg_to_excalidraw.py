@@ -395,11 +395,18 @@ def _element_area(element: dict) -> float:
     return abs(width * height)
 
 
-def _element_sort_key(index: int, element: dict) -> tuple[int, float, int]:
+def _element_sort_key(index: int, element: dict) -> tuple[int, int, float]:
+    """Sort elements by document order first, then by fill status and area.
+    
+    This preserves the original SVG layering where later elements appear on top,
+    which is crucial for complex emojis like the abacus where rails should 
+    appear over the colored beads.
+    """
     background = element.get("backgroundColor", "transparent") or "transparent"
     is_filled = background.lower() != "transparent"
     area = _element_area(element)
-    return (0 if is_filled else 1, -area, index)
+    # Primary: document order (index), Secondary: filled elements first, Tertiary: larger areas first
+    return (index, 0 if is_filled else 1, -area)
 
 
 def _element_bounds(element: dict) -> tuple[float, float, float, float]:
@@ -423,6 +430,72 @@ def _bounds_contains(outer: tuple[float, float, float, float], inner: tuple[floa
         and inner_max_x <= outer_max_x + margin
         and inner_max_y <= outer_max_y + margin
     )
+
+
+def _detect_ring_shape(polylines: List[List[Point]]) -> bool:
+    """Detect if multiple polylines represent a ring/donut shape (outer shape with inner hole).
+    
+    This is more restrictive than just checking for 2 polylines - it ensures the shapes
+    are rectangular-ish and the inner shape is a significant portion of the outer shape,
+    like a true frame rather than just a letter with a small hole.
+    """
+    if len(polylines) != 2:
+        return False
+    
+    # Check if both polylines are rectangular-ish (simplified check)
+    bounds1 = polyline_bounds(polylines[0])
+    bounds2 = polyline_bounds(polylines[1])
+    
+    # Determine which is outer and which is inner
+    area1 = (bounds1[2] - bounds1[0]) * (bounds1[3] - bounds1[1])
+    area2 = (bounds2[2] - bounds2[0]) * (bounds2[3] - bounds2[1])
+    
+    if area1 > area2:
+        outer_bounds, inner_bounds = bounds1, bounds2
+        outer_poly, inner_poly = polylines[0], polylines[1]
+    else:
+        outer_bounds, inner_bounds = bounds2, bounds1
+        outer_poly, inner_poly = polylines[1], polylines[0]
+    
+    # Check if outer contains inner
+    if not _bounds_contains(outer_bounds, inner_bounds, margin=2.0):
+        return False
+    
+    # Check if both shapes are roughly rectangular (4-ish sides)
+    # This helps distinguish frames from complex letter shapes
+    if len(outer_poly) < 4 or len(inner_poly) < 4:
+        return False
+    
+    # Check if the inner shape is a significant portion of the outer shape
+    # Real frames have substantial borders, while letters have small holes
+    outer_area = area1 if area1 > area2 else area2
+    inner_area = area2 if area1 > area2 else area1
+    
+    area_ratio = inner_area / outer_area if outer_area > 0 else 0
+    
+    # For a true ring/frame, the inner area should be a reasonable portion (20-80%)
+    # Letter holes are typically much smaller (< 20%)
+    if area_ratio < 0.2 or area_ratio > 0.8:
+        return False
+    
+    # Check if the inner shape is reasonably centered within the outer shape
+    outer_center_x = (outer_bounds[0] + outer_bounds[2]) / 2
+    outer_center_y = (outer_bounds[1] + outer_bounds[3]) / 2
+    inner_center_x = (inner_bounds[0] + inner_bounds[2]) / 2
+    inner_center_y = (inner_bounds[1] + inner_bounds[3]) / 2
+    
+    outer_width = outer_bounds[2] - outer_bounds[0]
+    outer_height = outer_bounds[3] - outer_bounds[1]
+    
+    # Centers should be close (within 20% of the outer dimensions)
+    center_tolerance_x = outer_width * 0.2
+    center_tolerance_y = outer_height * 0.2
+    
+    if (abs(outer_center_x - inner_center_x) > center_tolerance_x or 
+        abs(outer_center_y - inner_center_y) > center_tolerance_y):
+        return False
+    
+    return True
 
 
 def _element_center(bounds: tuple[float, float, float, float]) -> tuple[float, float]:
@@ -536,7 +609,7 @@ def _apply_overlay_colors(elements: List[dict]) -> None:
 
 
 def _create_line(
-    points: List[Point], *, fill_color: str, stroke_color: str, scale_factor: float
+    points: List[Point], *, fill_color: str, stroke_color: str, scale_factor: float, stroke_width: int = 2
 ) -> dict | None:
     if len(points) < 2:
         return None
@@ -557,7 +630,7 @@ def _create_line(
         "isDeleted": False,
         "id": str(uuid.uuid4()),
         "fillStyle": "solid",
-        "strokeWidth": 2,
+        "strokeWidth": stroke_width,
         "strokeStyle": "solid",
         "roughness": 1,
         "opacity": 100,
@@ -770,36 +843,53 @@ def svg_to_elements(
             preserve_stroke=preserve_stroke,
             paint_map=paint_map,
         )
-        for poly in polylines:
-            shape_type, bounds = _classify_polyline(poly)
-            if shape_type == "ellipse" and bounds is not None:
-                ellipse = _create_ellipse(
-                    bounds,
-                    fill_color=fill_color,
-                    stroke_color=stroke_color,
-                    scale_factor=scale_factor,
-                )
-                if ellipse:
-                    elements.append(ellipse)
-                continue
-            if shape_type == "rectangle" and bounds is not None:
-                rect = _create_rectangle_from_bounds(
-                    bounds,
-                    fill_color=fill_color,
-                    stroke_color=stroke_color,
-                    scale_factor=scale_factor,
-                )
-                if rect:
-                    elements.append(rect)
-                continue
+        
+        # Check if this represents a ring/donut shape that should be stroked instead of filled
+        if _detect_ring_shape(polylines) and fill_color != "transparent":
+            # For ring shapes, create a stroked outline of the outer shape instead of filled shapes
+            # Use a thicker stroke width to match the visual weight of the original SVG border
+            outer_poly = polylines[0] if len(polylines[0]) > len(polylines[1]) else polylines[1]
             line = _create_line(
-                poly,
-                fill_color=fill_color,
-                stroke_color=stroke_color,
+                outer_poly,
+                fill_color="transparent",  # No fill for ring shapes
+                stroke_color=fill_color,    # Use the fill color as stroke color
                 scale_factor=scale_factor,
+                stroke_width=8,  # Thicker stroke to match SVG border weight
             )
             if line:
                 elements.append(line)
+        else:
+            # Normal processing for non-ring shapes
+            for poly in polylines:
+                shape_type, bounds = _classify_polyline(poly)
+                if shape_type == "ellipse" and bounds is not None:
+                    ellipse = _create_ellipse(
+                        bounds,
+                        fill_color=fill_color,
+                        stroke_color=stroke_color,
+                        scale_factor=scale_factor,
+                    )
+                    if ellipse:
+                        elements.append(ellipse)
+                    continue
+                if shape_type == "rectangle" and bounds is not None:
+                    rect = _create_rectangle_from_bounds(
+                        bounds,
+                        fill_color=fill_color,
+                        stroke_color=stroke_color,
+                        scale_factor=scale_factor,
+                    )
+                    if rect:
+                        elements.append(rect)
+                    continue
+                line = _create_line(
+                    poly,
+                    fill_color=fill_color,
+                    stroke_color=stroke_color,
+                    scale_factor=scale_factor,
+                )
+                if line:
+                    elements.append(line)
 
     return elements
 

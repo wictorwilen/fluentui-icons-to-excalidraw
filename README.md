@@ -257,9 +257,28 @@ Whenever you tweak the conversion logic:
 3. Re-run `combine_excalidraw.py` with your preferred grouping for emoji libraries.
 4. Optionally combine with icon libraries for comprehensive sets.
 
+## Development Tools
+
+### Automatic Changelog Versioning
+
+A pre-commit hook is available to automatically version changelog entries:
+
+```bash
+# Install the pre-commit hook
+cp scripts/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+When you commit changes that include updates to `CHANGELOG.md`, the hook will:
+- Convert the `[Unreleased]` section to a dated version (e.g., `[2025.10.20] - 2025-10-20 13:47:04 UTC`)
+- Create a new empty `[Unreleased]` section for future changes
+- Automatically stage the updated changelog
+
+This ensures that every commit with changelog updates creates a proper version entry with timestamps.
+
 ## Automated releases
 
-A scheduled GitHub Actions workflow (`.github/workflows/release.yml`) rebuilds the full icon cache, converts every SVG into Excalidraw scenes, generates category-based grouped boards, and publishes the outputs as a release. Trigger it manually from the Actions tab or let the weekly schedule refresh the published archives. Adjust the categories by editing `config/icon_categories.json` before running the workflow if you need different buckets.
+A scheduled GitHub Actions workflow (`.github/workflows/release.yml`) rebuilds the full icon and emoji cache, converts every SVG into Excalidraw scenes, generates category-based grouped boards, and publishes the outputs as a release. The workflow processes both Fluent UI icons and emojis, creating comprehensive libraries for each. Trigger it manually from the Actions tab or let the weekly schedule refresh the published archives. Adjust the categories by editing `config/icon_categories.json` before running the workflow if you need different buckets.
 
 ## Opening the results in Excalidraw
 

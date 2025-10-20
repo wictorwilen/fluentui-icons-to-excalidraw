@@ -135,6 +135,7 @@ Important options:
 - Adjust styling constants (stroke width, colors, scale) inside `svg_to_excalidraw.py` if the visual presentation changes.
 - When you change scripts or add capabilities, update `README.md` so end users see the new behavior and commands.
 - Whenever you introduce a new feature, ask the user whether the GitHub Actions workflow should be updated to cover it before making CI changes.
+- The GitHub Actions workflow now includes comprehensive emoji processing alongside icon generation.
 
 ### **MANDATORY: Changelog Maintenance**
 - **ALWAYS update `CHANGELOG.md`** when making any changes to the codebase, especially fixes, enhancements, or new features
@@ -142,7 +143,14 @@ Important options:
 - **Avoid technical details** like threshold numbers, function names, or code-level specifics
 - Follow the [Keep a Changelog](https://keepachangelog.com/en/1.0.0/) format with categories: Added, Changed, Deprecated, Removed, Fixed, Security
 - Document the impact on end users and visual/functional improvements rather than code-level changes
-- Update the [Unreleased] section for ongoing work, and create version sections when releasing
+- Update the [Unreleased] section for ongoing work - the pre-commit hook will automatically version it on commit
+
+### **Automatic Changelog Versioning**
+- **Pre-commit hook automatically versions changelog entries** when committing changes to CHANGELOG.md
+- **Converts [Unreleased] to dated version** (e.g., [2025.10.20] - 2025-10-20 13:47:04 UTC)
+- **Creates new empty [Unreleased] section** ready for future changes
+- **Install the hook**: `cp scripts/hooks/pre-commit .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit`
+- **Only activates when CHANGELOG.md has staged changes** and contains actual content in [Unreleased]
 
 
 

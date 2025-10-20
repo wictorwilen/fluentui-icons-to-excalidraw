@@ -1,4 +1,4 @@
-name: Build Excalidraw Release
+name: Build Excalidraw Icons & Emojis Release
 
 on:
   workflow_dispatch:
@@ -33,6 +33,19 @@ jobs:
           python scripts/svg_to_excalidraw.py \
             --input-dir vendor/icons/assets \
             --output-dir artifacts/excalidraw
+
+      - name: Fetch Fluent UI Emoji assets
+        run: |
+          python scripts/fetch_emojis.py \
+            --output metadata/emojis.json \
+            --download-dir vendor/emojis \
+            --force
+
+      - name: Convert emojis to Excalidraw
+        run: |
+          python scripts/emoji_to_excalidraw.py \
+            --input-dir vendor/emojis/assets \
+            --output-dir artifacts/excalidraw_emojis
 
       - name: Combine all icons into a single board
         run: |
@@ -71,9 +84,59 @@ jobs:
             --library \
             --exclude-regular
 
+      - name: Combine all emojis into a single board
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw_emojis \
+            --output artifacts/emoji_library.excalidraw \
+            --group-by none \
+            --columns 6 \
+            --cell-width 180 \
+            --cell-height 160 \
+            --padding 30 \
+            --label-gap 25
+
+      - name: Group emojis into categories
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw_emojis \
+            --output artifacts/excalidraw_emoji_categories \
+            --group-by category \
+            --columns 5 \
+            --cell-width 200 \
+            --cell-height 180 \
+            --padding 35 \
+            --label-gap 25
+
+      - name: Build emoji library bundle
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw_emojis \
+            --output artifacts/excalidraw_emoji_library/emojis.excalidrawlib \
+            --library \
+            --columns 6 \
+            --cell-width 180 \
+            --cell-height 160 \
+            --padding 30 \
+            --label-gap 25
+
+      - name: Build emoji category libraries
+        run: |
+          python scripts/combine_excalidraw.py \
+            --input-dir artifacts/excalidraw_emojis \
+            --output artifacts/excalidraw_emoji_library_categories \
+            --group-by category \
+            --library \
+            --columns 5 \
+            --cell-width 200 \
+            --cell-height 180 \
+            --padding 35 \
+            --label-gap 25
+
       - name: Package release assets
         run: |
           mkdir -p dist
+          # Icon packages
           zip -r dist/excalidraw-scenes.zip artifacts/excalidraw
           zip -r dist/excalidraw-groups-categories.zip artifacts/excalidraw_categories
           zip -r dist/excalidraw-library.zip artifacts/excalidraw_library
@@ -81,6 +144,14 @@ jobs:
           cp artifacts/all_icons.excalidraw dist/all_icons.excalidraw
           cp artifacts/excalidraw_library/icons.excalidrawlib dist/icons-library.excalidrawlib
           cp metadata/icons.json dist/icons-metadata.json
+          # Emoji packages
+          zip -r dist/excalidraw-emoji-scenes.zip artifacts/excalidraw_emojis
+          zip -r dist/excalidraw-emoji-categories.zip artifacts/excalidraw_emoji_categories
+          zip -r dist/excalidraw-emoji-library.zip artifacts/excalidraw_emoji_library
+          zip -r dist/excalidraw-emoji-library-categories.zip artifacts/excalidraw_emoji_library_categories
+          cp artifacts/emoji_library.excalidraw dist/emoji_library.excalidraw
+          cp artifacts/excalidraw_emoji_library/emojis.excalidrawlib dist/emojis-library.excalidrawlib
+          cp metadata/emojis.json dist/emojis-metadata.json
 
       - name: Upload workflow artifacts
         uses: actions/upload-artifact@v4
@@ -101,7 +172,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.release_meta.outputs.version }}
-          release_name: Fluent UI Excalidraw ${{ steps.release_meta.outputs.version }}
+          release_name: Fluent UI Icons & Emojis for Excalidraw ${{ steps.release_meta.outputs.version }}
           draft: false
           prerelease: false
 
@@ -173,4 +244,74 @@ jobs:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/icons-metadata.json
           asset_name: icons-metadata-${{ steps.release_meta.outputs.version }}.json
+          asset_content_type: application/json
+
+      - name: Upload emoji scenes archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-emoji-scenes.zip
+          asset_name: excalidraw-emoji-scenes-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload emoji category boards archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-emoji-categories.zip
+          asset_name: excalidraw-emoji-categories-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload emoji library archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-emoji-library.zip
+          asset_name: excalidraw-emoji-library-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload emoji category library archive
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/excalidraw-emoji-library-categories.zip
+          asset_name: excalidraw-emoji-library-categories-${{ steps.release_meta.outputs.version }}.zip
+          asset_content_type: application/zip
+
+      - name: Upload combined emoji board
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/emoji_library.excalidraw
+          asset_name: emoji-library-${{ steps.release_meta.outputs.version }}.excalidraw
+          asset_content_type: application/json
+
+      - name: Upload emoji library
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/emojis-library.excalidrawlib
+          asset_name: emojis-library-${{ steps.release_meta.outputs.version }}.excalidrawlib
+          asset_content_type: application/json
+
+      - name: Upload emoji metadata
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/emojis-metadata.json
+          asset_name: emojis-metadata-${{ steps.release_meta.outputs.version }}.json
           asset_content_type: application/json

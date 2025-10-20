@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.20] - 2025-10-20 14:56:11 UTC
+
+
+### Fixed
+- **Corrected emoji z-index layering**: Fixed element ordering to preserve original SVG document order, ensuring proper layering in complex emojis like the Abacus where rails now correctly appear over colored beads
+- **Fixed ring/donut shape rendering**: Complex shapes with holes (like the Abacus frame) now render as stroked outlines instead of filled rectangles, allowing interior elements to remain visible
+- **Improved stroke width for outline shapes**: Ring/donut shapes now use thicker strokes (8px instead of 2px) to better match the visual weight of original SVG borders
+- **Enhanced ring detection accuracy**: Improved ring shape detection to distinguish true frames from letters with small holes (like the "A" in AB button), preventing incorrect outline rendering of text characters
+
+### Changed
+- **Enhanced GitHub Actions workflow**: Now includes comprehensive emoji generation alongside icon processing, creating complete emoji libraries and categorized collections in automated releases
+- **Improved emoji fetch progress reporting**: Added batch progress reporting every 100 downloads, consistent with icon fetching behavior
+
 ## [2025.10.20] - 2025-10-20 13:47:58 UTC
 
 
