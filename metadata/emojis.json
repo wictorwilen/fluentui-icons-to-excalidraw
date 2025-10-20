@@ -1,0 +1,190 @@
+{
+  "metadata": {
+    "source": "https://github.com/microsoft/fluentui-emoji",
+    "total_emojis": 10,
+    "preferred_style": "flat",
+    "styles": [
+      "flat"
+    ],
+    "skin_tones": [
+      "light",
+      "medium",
+      "medium-dark",
+      "default",
+      "medium-light",
+      "dark"
+    ]
+  },
+  "emojis": {
+    "1st place medal": {
+      "name": "1st place medal",
+      "variants": [
+        {
+          "path": "/assets/1st place medal/Flat/1st_place_medal_flat.svg",
+          "name": "1st place medal",
+          "display_name": "1St Place Medal",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/1st%20place%20medal/Flat/1st_place_medal_flat.svg",
+          "size": 1666,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "2nd place medal": {
+      "name": "2nd place medal",
+      "variants": [
+        {
+          "path": "/assets/2nd place medal/Flat/2nd_place_medal_flat.svg",
+          "name": "2nd place medal",
+          "display_name": "2Nd Place Medal",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/2nd%20place%20medal/Flat/2nd_place_medal_flat.svg",
+          "size": 2168,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "3rd place medal": {
+      "name": "3rd place medal",
+      "variants": [
+        {
+          "path": "/assets/3rd place medal/Flat/3rd_place_medal_flat.svg",
+          "name": "3rd place medal",
+          "display_name": "3Rd Place Medal",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/3rd%20place%20medal/Flat/3rd_place_medal_flat.svg",
+          "size": 2165,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "A button blood type": {
+      "name": "A button blood type",
+      "variants": [
+        {
+          "path": "/assets/A button blood type/Flat/a_button_blood_type_flat.svg",
+          "name": "A button blood type",
+          "display_name": "A Button Blood Type",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/A%20button%20blood%20type/Flat/a_button_blood_type_flat.svg",
+          "size": 942,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "Ab button blood type": {
+      "name": "Ab button blood type",
+      "variants": [
+        {
+          "path": "/assets/Ab button blood type/Flat/ab_button_blood_type_flat.svg",
+          "name": "Ab button blood type",
+          "display_name": "Ab Button Blood Type",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Ab%20button%20blood%20type/Flat/ab_button_blood_type_flat.svg",
+          "size": 2008,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "Abacus": {
+      "name": "Abacus",
+      "variants": [
+        {
+          "path": "/assets/Abacus/Flat/abacus_flat.svg",
+          "name": "Abacus",
+          "display_name": "Abacus",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Abacus/Flat/abacus_flat.svg",
+          "size": 3178,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "Accordion": {
+      "name": "Accordion",
+      "variants": [
+        {
+          "path": "/assets/Accordion/Flat/accordion_flat.svg",
+          "name": "Accordion",
+          "display_name": "Accordion",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Accordion/Flat/accordion_flat.svg",
+          "size": 7037,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "Adhesive bandage": {
+      "name": "Adhesive bandage",
+      "variants": [
+        {
+          "path": "/assets/Adhesive bandage/Flat/adhesive_bandage_flat.svg",
+          "name": "Adhesive bandage",
+          "display_name": "Adhesive Bandage",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Adhesive%20bandage/Flat/adhesive_bandage_flat.svg",
+          "size": 2411,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "Admission tickets": {
+      "name": "Admission tickets",
+      "variants": [
+        {
+          "path": "/assets/Admission tickets/Flat/admission_tickets_flat.svg",
+          "name": "Admission tickets",
+          "display_name": "Admission Tickets",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Admission%20tickets/Flat/admission_tickets_flat.svg",
+          "size": 2424,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    },
+    "Aerial tramway": {
+      "name": "Aerial tramway",
+      "variants": [
+        {
+          "path": "/assets/Aerial tramway/Flat/aerial_tramway_flat.svg",
+          "name": "Aerial tramway",
+          "display_name": "Aerial Tramway",
+          "style": "flat",
+          "skin_tone": null,
+          "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Aerial%20tramway/Flat/aerial_tramway_flat.svg",
+          "size": 1136,
+          "unicode_codepoint": null,
+          "group": null,
+          "keywords": []
+        }
+      ]
+    }
+  }
+}

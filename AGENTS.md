@@ -18,11 +18,14 @@ Convert the Microsoft-owned Fluent UI regular, filled, and color icon sets into 
 - `scripts/fetch_icons.py`: Pulls metadata and SVG assets into `metadata/icons.json` and `vendor/icons/assets`. Supports optional filtering when a "used icons" directory is provided.
 - `scripts/path_parser.py`: Simplifies and normalizes SVG path data for downstream conversion.
 - `scripts/svg_to_excalidraw.py`: Converts cached SVGs into `.excalidraw` scenes using a consistent sketch style (4× scale, stroke `#1e1e1e`, fill `#1971c2` where applicable, roughness 1).
-- `scripts/combine_excalidraw.py`: Groups individual scenes into larger boards. Handles layout geometry and variant filtering.
-- `config/icon_categories.json`: Maintains keyword buckets for the category grouping strategy.
+- `scripts/fetch_emojis.py`: Downloads Fluent UI emoji metadata and SVG assets from GitHub API, supporting flat style and skin tone variations.
+- `scripts/emoji_to_excalidraw.py`: Converts emoji SVGs to Excalidraw format with intelligent color mapping to preserve vibrant flat emoji colors.
+- `scripts/combine_excalidraw.py`: Groups individual scenes into larger boards. Handles layout geometry and variant filtering for both icons and emojis.
+- `config/icon_categories.json`: Maintains keyword buckets for the category grouping strategy, including emoji categories.
 - `vendor/icons/`: Cached Fluent UI SVG payloads, mirroring upstream paths.
-- `metadata/`: JSON manifest describing every downloaded icon.
-- `artifacts/`: Generated Excalidraw scenes (`artifacts/excalidraw`) and optional grouped boards (`artifacts/excalidraw_categories`). Git ignores this directory.
+- `vendor/emojis/`: Cached Fluent UI emoji SVG payloads.
+- `metadata/`: JSON manifests describing every downloaded icon and emoji.
+- `artifacts/`: Generated Excalidraw scenes (`artifacts/excalidraw`, `artifacts/excalidraw_emojis`) and optional grouped boards. Git ignores this directory.
 
 ## Core Workflows
 
@@ -50,6 +53,30 @@ python3 scripts/svg_to_excalidraw.py \
 
 Outputs one `.excalidraw` file per source SVG. Summary metrics (processed, converted, duplicates, failed) print to stdout for monitoring.
 
+### Fetch Emojis
+
+```bash
+python3 scripts/fetch_emojis.py \
+  --output metadata/emojis.json \
+  --download-dir vendor/emojis \
+  --force
+```
+
+Key flags:
+- `--force`: overwrite existing metadata and asset cache.
+- `--limit N`: limit downloads to N emojis for testing.
+- `--preferred-style flat`: use flat style emojis (only supported style for Excalidraw compatibility).
+
+### Convert Emojis to Excalidraw
+
+```bash
+python3 scripts/emoji_to_excalidraw.py \
+  --input-dir vendor/emojis/assets \
+  --output-dir artifacts/excalidraw_emojis
+```
+
+Outputs one `.excalidraw` file per source emoji SVG with intelligent color mapping to preserve flat emoji colors.
+
 ### Combine Boards
 
 ```bash
@@ -65,6 +92,19 @@ python3 scripts/combine_excalidraw.py \
   --exclude-regular
 ```
 
+Works with both icons and emojis. For emojis, use larger spacing parameters:
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw_emojis \
+  --output artifacts/excalidraw_emoji_categories \
+  --group-by category \
+  --columns 5 \
+  --cell-width 200 \
+  --cell-height 180 \
+  --padding 35 \
+  --label-gap 25
+```
+
 Important options:
 - `--group-by`: `none`, `directory`, `letter`, `first-word`, `category`, or `batch`.
 - `--batch-size`: size per board when using `batch` grouping.
@@ -75,9 +115,16 @@ Important options:
 
 ## Regeneration Checklist
 
+### For Icons:
 1. (Optional) Clear previous artifacts: `rm -rf artifacts/excalidraw artifacts/excalidraw_categories`.
 2. Fetch new or updated icons (`fetch_icons.py`).
 3. Convert to individual Excalidraw files (`svg_to_excalidraw.py`).
+4. Combine into boards as needed (`combine_excalidraw.py`).
+
+### For Emojis:
+1. (Optional) Clear previous artifacts: `rm -rf artifacts/excalidraw_emojis artifacts/excalidraw_emoji_categories`.
+2. Fetch new or updated emojis (`fetch_emojis.py`).
+3. Convert to individual Excalidraw files (`emoji_to_excalidraw.py`).
 4. Combine into boards as needed (`combine_excalidraw.py`).
 
 ## Maintenance Notes
