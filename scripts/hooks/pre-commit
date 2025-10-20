@@ -1,0 +1,79 @@
+#!/bin/bash
+
+# Pre-commit hook to automatically version changelog entries
+# This hook converts [Unreleased] section to a dated version and creates a new [Unreleased] section
+#
+# To install this hook:
+# cp scripts/hooks/pre-commit .git/hooks/pre-commit
+# chmod +x .git/hooks/pre-commit
+
+set -e
+
+CHANGELOG_FILE="CHANGELOG.md"
+
+# Check if CHANGELOG.md exists and is staged for commit
+if [ ! -f "$CHANGELOG_FILE" ]; then
+    exit 0
+fi
+
+# Check if CHANGELOG.md has staged changes
+if ! git diff --cached --name-only | grep -q "$CHANGELOG_FILE"; then
+    exit 0
+fi
+
+# Check if there's an [Unreleased] section with actual content
+if ! grep -q "## \[Unreleased\]" "$CHANGELOG_FILE"; then
+    exit 0
+fi
+
+# Extract content between [Unreleased] and the next version section (or end of file)
+UNRELEASED_CONTENT=$(sed -n '/## \[Unreleased\]/,/## \[/p' "$CHANGELOG_FILE" | sed '$d' | tail -n +2)
+
+# Check if there's actually content in the Unreleased section (not just empty lines)
+if [ -z "$(echo "$UNRELEASED_CONTENT" | grep -v '^[[:space:]]*$')" ]; then
+    exit 0
+fi
+
+# Generate version string with current date and time
+VERSION_DATE=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+VERSION_TAG=$(date -u +"%Y.%m.%d")
+
+echo "📝 Versioning changelog entries..."
+echo "   Creating version: $VERSION_TAG ($VERSION_DATE)"
+
+# Create a temporary file
+TEMP_FILE=$(mktemp)
+
+# Write the new changelog structure
+cat > "$TEMP_FILE" << EOF
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+## [$VERSION_TAG] - $VERSION_DATE
+
+$UNRELEASED_CONTENT
+EOF
+
+# Get the rest of the changelog (everything after the first version section)
+EXISTING_VERSIONS=$(sed -n '/## \[.*\] -.*[0-9]/,$p' "$CHANGELOG_FILE" 2>/dev/null || echo "")
+if [ -n "$EXISTING_VERSIONS" ]; then
+    echo "" >> "$TEMP_FILE"
+    echo "$EXISTING_VERSIONS" >> "$TEMP_FILE"
+fi
+
+# Replace the original changelog
+mv "$TEMP_FILE" "$CHANGELOG_FILE"
+
+# Stage the updated changelog
+git add "$CHANGELOG_FILE"
+
+echo "✅ Changelog updated: [Unreleased] → [$VERSION_TAG]"
+echo "   New empty [Unreleased] section created"
+
+exit 0

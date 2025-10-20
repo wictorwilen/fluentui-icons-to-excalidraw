@@ -144,12 +144,7 @@ Important options:
 - Document the impact on end users and visual/functional improvements rather than code-level changes
 - Update the [Unreleased] section for ongoing work, and create version sections when releasing
 
-### **Automated Changelog Updates**
-- **GitHub Action automatically updates changelog** on every push to main and merged PRs
-- **Use conventional commit messages** (feat:, fix:, refactor:, etc.) for automatic categorization
-- **Manual updates still welcome** for major changes or when automatic detection misses important details
-- **Script filters out technical details** and focuses on user-facing improvements
-- Run `./scripts/update-changelog.sh` locally to test changelog generation
+
 
 ## Licensing and Attribution
 

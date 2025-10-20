@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.20] - 2025-10-20 13:47:04 UTC
+
+
 ### Added
 - **FluentUI Emoji Support**: Complete import system for Microsoft's FluentUI Emojis
   - New `fetch_emojis.py` script to download emoji SVGs and metadata from GitHub
