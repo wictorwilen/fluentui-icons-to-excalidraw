@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.20] - 2025-10-20 13:47:58 UTC
+
+
+### Added
+- **Pre-commit hook for automatic changelog versioning**: Automatically converts [Unreleased] sections to dated versions on commit
+
 ## [2025.10.20] - 2025-10-20 13:47:04 UTC
 
 
