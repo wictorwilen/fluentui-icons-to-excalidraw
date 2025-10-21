@@ -1,0 +1,355 @@
+name: Deploy Fluent Jot Web App to Azure Static Web Apps
+
+on:
+  # On-demand deployment only
+  workflow_dispatch:
+    inputs:
+      deployment_message:
+        description: 'Deployment message'
+        required: false
+        default: 'Manual web app deployment'
+        type: string
+      use_latest_metadata:
+        description: 'Download latest metadata from release (for data consistency)'
+        required: false
+        default: true
+        type: boolean
+
+env:
+  NODE_VERSION: '18'
+
+jobs:
+  build_and_deploy_job:
+    runs-on: ubuntu-latest
+    name: Build and Deploy Fluent Jot Web App
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache Node.js dependencies
+        uses: actions/cache@v3
+        with:
+          path: web/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('web/package*.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Set up environment variables
+        run: |
+          echo "DEPLOYMENT_MESSAGE=${{ github.event.inputs.deployment_message }}" >> $GITHUB_ENV
+          echo "USE_LATEST_METADATA=${{ github.event.inputs.use_latest_metadata }}" >> $GITHUB_ENV
+          echo "🔧 Environment configured for web app deployment"
+
+      - name: Download metadata from latest release (optional)
+        if: github.event.inputs.use_latest_metadata == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📋 Downloading latest metadata from release for data consistency..."
+          
+          # Get the latest release
+          LATEST_RELEASE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+          
+          RELEASE_TAG=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+          echo "� Latest release: $RELEASE_TAG"
+          
+          # Download metadata files
+          ICONS_METADATA_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("icons-metadata-")) | .browser_download_url')
+          EMOJIS_METADATA_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("emojis-metadata-")) | .browser_download_url')
+          
+          if [ "$ICONS_METADATA_URL" != "null" ] && [ "$EMOJIS_METADATA_URL" != "null" ]; then
+            # Create metadata directory
+            mkdir -p metadata
+            
+            echo "📥 Downloading icon metadata from: $ICONS_METADATA_URL"
+            curl -L -H "Authorization: token $GITHUB_TOKEN" "$ICONS_METADATA_URL" -o metadata/icons.json
+            
+            echo "📥 Downloading emoji metadata from: $EMOJIS_METADATA_URL"
+            curl -L -H "Authorization: token $GITHUB_TOKEN" "$EMOJIS_METADATA_URL" -o metadata/emojis.json
+            
+            echo "✅ Downloaded metadata from release: icons.json and emojis.json"
+          else
+            echo "⚠️  Could not find metadata URLs, using existing metadata files"
+          fi
+
+      - name: Download pre-built Excalidraw artifacts from latest release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📦 Downloading pre-built Excalidraw artifacts from latest release..."
+          
+          if [ "${{ github.event.inputs.force_rebuild }}" = "true" ]; then
+            echo "🔄 Force rebuild requested - will regenerate from source SVGs"
+            
+            # Install Python dependencies for SVG processing
+            echo "🐍 Setting up Python dependencies..."
+            python -m pip install --upgrade pip
+            
+            if [ -f "requirements.txt" ]; then
+              echo "📋 Installing from requirements.txt..."
+              pip install -r requirements.txt
+              echo "✅ Installed Python dependencies"
+            else
+              echo "❌ requirements.txt not found"
+              exit 1
+            fi
+            
+            # Create directories
+            mkdir -p metadata vendor/icons vendor/emojis
+            
+            # Fetch icons and emojis
+            echo "📥 Downloading Fluent UI icons and metadata..."
+            python3 scripts/fetch_icons.py \
+              --output metadata/icons.json \
+              --download-dir vendor/icons \
+              --force
+            
+            echo "😀 Downloading Fluent UI emojis and metadata..."
+            python3 scripts/fetch_emojis.py \
+              --output metadata/emojis.json \
+              --download-dir vendor/emojis \
+              --force \
+              --preferred-style flat
+            
+            # Generate Excalidraw files
+            echo "🎨 Generating icon Excalidraw files..."
+            python3 scripts/svg_to_excalidraw.py \
+              --input-dir vendor/icons/assets \
+              --output-dir artifacts/excalidraw
+            
+            echo "😀 Generating emoji Excalidraw files..."
+            python3 scripts/emoji_to_excalidraw.py \
+              --input-dir vendor/emojis/assets \
+              --output-dir artifacts/excalidraw_emojis
+              
+            excalidraw_icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
+            excalidraw_emoji_count=$(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)
+            echo "✅ Generated $excalidraw_icon_count icon files and $excalidraw_emoji_count emoji files from source"
+          else
+            echo "� Using optimized release artifacts download..."
+            
+            # Get the latest release
+            LATEST_RELEASE=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/latest")
+            
+            RELEASE_TAG=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+            echo "📋 Latest release: $RELEASE_TAG"
+            
+            # Download the pre-built excalidraw scenes and metadata from the same release
+            SCENES_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("excalidraw-scenes-")) | .browser_download_url')
+            EMOJI_SCENES_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("excalidraw-emoji-scenes-")) | .browser_download_url')
+            ICONS_METADATA_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("icons-metadata-")) | .browser_download_url')
+            EMOJIS_METADATA_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("emojis-metadata-")) | .browser_download_url')
+            
+            if [ "$SCENES_URL" != "null" ] && [ "$EMOJI_SCENES_URL" != "null" ] && [ "$ICONS_METADATA_URL" != "null" ] && [ "$EMOJIS_METADATA_URL" != "null" ]; then
+              # Create metadata directory
+              mkdir -p metadata
+              
+              echo "📥 Downloading icon scenes from: $SCENES_URL"
+              curl -L -H "Authorization: token $GITHUB_TOKEN" "$SCENES_URL" -o excalidraw-scenes.zip
+              
+              echo "📥 Downloading emoji scenes from: $EMOJI_SCENES_URL"
+              curl -L -H "Authorization: token $GITHUB_TOKEN" "$EMOJI_SCENES_URL" -o excalidraw-emoji-scenes.zip
+              
+              echo "📥 Downloading icon metadata from: $ICONS_METADATA_URL"
+              curl -L -H "Authorization: token $GITHUB_TOKEN" "$ICONS_METADATA_URL" -o metadata/icons.json
+              
+              echo "📥 Downloading emoji metadata from: $EMOJIS_METADATA_URL"
+              curl -L -H "Authorization: token $GITHUB_TOKEN" "$EMOJIS_METADATA_URL" -o metadata/emojis.json
+              
+              # Extract the archives
+              echo "� Extracting icon scenes..."
+              unzip -q excalidraw-scenes.zip
+              
+              echo "� Extracting emoji scenes..."
+              unzip -q excalidraw-emoji-scenes.zip
+              
+              # Clean up zip files
+              rm excalidraw-scenes.zip excalidraw-emoji-scenes.zip
+              
+              echo "✅ Downloaded metadata from release: icons.json and emojis.json"
+              
+              # Verify extraction
+              if [ -d "artifacts/excalidraw" ] && [ -d "artifacts/excalidraw_emojis" ]; then
+                excalidraw_icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
+                excalidraw_emoji_count=$(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)
+                echo "✅ Successfully extracted $excalidraw_icon_count icon files and $excalidraw_emoji_count emoji files"
+                
+                if [ "$excalidraw_icon_count" -eq 0 ] || [ "$excalidraw_emoji_count" -eq 0 ]; then
+                  echo "❌ No Excalidraw files found after extraction"
+                  exit 1
+                fi
+              else
+                echo "❌ Extraction failed - artifacts directories not found"
+                exit 1
+              fi
+            else
+              echo "❌ Could not find all required release artifacts URLs"
+              echo "   Scenes: $SCENES_URL"
+              echo "   Emoji scenes: $EMOJI_SCENES_URL" 
+              echo "   Icon metadata: $ICONS_METADATA_URL"
+              echo "   Emoji metadata: $EMOJIS_METADATA_URL"
+              exit 1
+            fi
+          fi
+
+      - name: Install Node.js dependencies
+        run: |
+          cd web
+          echo "📂 Checking Node.js project structure..."
+          ls -la
+          
+          # Install dependencies (use npm install if package-lock.json doesn't exist)
+          if [ -f "package-lock.json" ]; then
+            echo "📦 Using npm ci for consistent installs..."
+            npm ci --no-optional
+          else
+            echo "📦 Using npm install (no lockfile found)..."
+            npm install --no-optional
+          fi
+          echo "📦 Installed Node.js dependencies"
+
+      - name: Lint and type check
+        run: |
+          cd web
+          echo "🔍 Running linting and type checks..."
+          npm run lint:check
+          npm run type-check
+          echo "✅ Code quality checks passed"
+
+      - name: Upload Excalidraw files to Azure Blob Storage
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          echo "☁️ Uploading Excalidraw files to Azure Blob Storage..."
+          
+          # Install Azure CLI if not present
+          if ! command -v az &> /dev/null; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+          
+          # Check if we have artifacts to upload
+          if [ -d "artifacts/excalidraw" ] && [ -d "artifacts/excalidraw_emojis" ]; then
+            # Create container if it doesn't exist (with public read access)
+            az storage container create \
+              --name excalidraw-assets \
+              --public-access blob \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --output none || true
+            
+            # Upload icon files
+            echo "📁 Uploading icon Excalidraw files..."
+            az storage blob upload-batch \
+              --destination excalidraw-assets \
+              --source artifacts/excalidraw \
+              --destination-path icons/ \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --overwrite \
+              --output none
+            
+            # Upload emoji files  
+            echo "😀 Uploading emoji Excalidraw files..."
+            az storage blob upload-batch \
+              --destination excalidraw-assets \
+              --source artifacts/excalidraw_emojis \
+              --destination-path emojis/ \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --overwrite \
+              --output none
+            
+            # Count uploaded files
+            icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
+            emoji_count=$(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)
+            total_files=$((icon_count + emoji_count))
+            
+            echo "✅ Uploaded $total_files Excalidraw files to blob storage"
+            echo "   - Icons: $icon_count files"  
+            echo "   - Emojis: $emoji_count files"
+          else
+            echo "❌ No Excalidraw artifacts found to upload"
+            exit 1
+          fi
+
+      - name: Prepare for deployment
+        run: |
+          cd web
+          echo "🧹 Preparing optimized deployment package..."
+          
+          # Remove build directory since Azure SWA will build the app
+          if [ -d "build" ]; then
+            rm -rf build
+            echo "✅ Removed build directory (Azure SWA will rebuild)"
+          fi
+          
+          # Remove the large public/excalidraw directory since files are now in blob storage
+          if [ -d "public/excalidraw" ]; then
+            excalidraw_size=$(du -sh public/excalidraw | cut -f1)
+            rm -rf public/excalidraw
+            echo "✅ Removed public/excalidraw directory ($excalidraw_size) - now served from blob storage"
+          fi
+          
+          # Remove any cache or temporary files
+          find . -name "*.log" -delete
+          find . -name ".DS_Store" -delete
+          find . -name "*.tmp" -delete
+          
+          # Show what will be uploaded (excluding node_modules for brevity)  
+          echo "📁 Optimized deployment package:"
+          echo "  Source code: $(du -sh src | cut -f1)"
+          echo "  Public assets: $(du -sh public | cut -f1)"
+          echo "  Package files: $(du -sh package*.json | cut -f1 | head -1)"
+          echo "  Config files: $(find . -maxdepth 1 -name "*.config.*" -o -name "tsconfig.json" | wc -l) files"
+          
+          # Calculate and display total upload size (excluding node_modules which Azure will reinstall)
+          total_size=$(du -sh --exclude=node_modules --exclude=.git . | cut -f1)
+          echo "📦 Total upload size (excluding node_modules): $total_size"
+          echo "🎯 Excalidraw files now served from Azure Blob Storage CDN"
+
+      - name: Deploy to Azure Static Web Apps
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_POLITE_FLOWER_07D4D8403 }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/web"
+          output_location: "build"
+          skip_api_build: true
+        env:
+          # Configure the web app to use blob storage for Excalidraw files
+          REACT_APP_USE_BLOB_STORAGE: "true"
+          REACT_APP_BLOB_STORAGE_URL: ${{ secrets.AZURE_BLOB_STORAGE_URL }}
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "🎉 Fluent Jot deployed successfully!"
+          echo "💬 Deployment message: $DEPLOYMENT_MESSAGE"
+          echo "🌐 Application URL: ${{ steps.builddeploy.outputs.static_web_app_url }}"
+          echo "📊 Total build assets: $(find web/build -type f | wc -l) files"
+          echo "🎨 Icons available: $(find artifacts/excalidraw -name '*.excalidraw' | wc -l)"
+          echo "😀 Emojis available: $(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)"
+          
+          # Calculate total size
+          build_size=$(du -sh web/build | cut -f1)
+          echo "📦 Total build size: $build_size"
