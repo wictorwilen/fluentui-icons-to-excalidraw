@@ -153,6 +153,8 @@ jobs:
           app_location: "/web"
           output_location: "build"
           skip_api_build: true
+          # Set build command with environment variables
+          app_build_command: "REACT_APP_USE_BLOB_STORAGE=true REACT_APP_BLOB_STORAGE_URL=${{ secrets.AZURE_BLOB_STORAGE_URL }} npm run build"
         env:
           # Configure the web app to use blob storage for Excalidraw files
           REACT_APP_USE_BLOB_STORAGE: "true"
