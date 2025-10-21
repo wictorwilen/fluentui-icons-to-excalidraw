@@ -295,6 +295,13 @@ function findExcalidrawFile(iconPath) {
   
   const fullPath = path.join(ARTIFACTS_DIR, 'excalidraw', excalidrawPath);
   
+  // If using blob storage, assume the file exists and return the expected path
+  const useBlobStorage = process.env.REACT_APP_USE_BLOB_STORAGE === 'true';
+  if (useBlobStorage) {
+    return fullPath;
+  }
+  
+  // For local deployment, check if file actually exists
   return fs.existsSync(fullPath) ? fullPath : null;
 }
 
@@ -309,6 +316,13 @@ function findEmojiExcalidrawFile(emojiName) {
   const id = emojiName.replace(/\s+/g, '_').replace(/-/g, '_');
   const excalidrawPath = path.join(ARTIFACTS_DIR, 'excalidraw_emojis', `${id}.excalidraw`);
   
+  // If using blob storage, assume the file exists and return the expected path
+  const useBlobStorage = process.env.REACT_APP_USE_BLOB_STORAGE === 'true';
+  if (useBlobStorage) {
+    return excalidrawPath;
+  }
+  
+  // For local deployment, check if file actually exists
   return fs.existsSync(excalidrawPath) ? excalidrawPath : null;
 }
 
