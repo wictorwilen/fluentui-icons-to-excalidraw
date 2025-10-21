@@ -42,6 +42,23 @@ export interface SearchFilters {
   category: string | null;
   styles: ('regular' | 'filled' | 'light' | 'flat' | 'color')[];
   type: 'all' | 'icons' | 'emojis';
+  showFavoritesOnly?: boolean;
+}
+
+// Favorites management
+export interface FavoritesState {
+  icons: Set<string>;
+  emojis: Set<string>;
+}
+
+export interface FavoritesActions {
+  toggleIconFavorite: (iconId: string) => void;
+  toggleEmojiFavorite: (emojiId: string) => void;
+  isIconFavorite: (iconId: string) => boolean;
+  isEmojiFavorite: (emojiId: string) => boolean;
+  getFavoriteIcons: () => Icon[];
+  getFavoriteEmojis: () => Emoji[];
+  clearAllFavorites: () => void;
 }
 
 export interface SearchResult {

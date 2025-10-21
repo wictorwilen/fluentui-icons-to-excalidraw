@@ -1,5 +1,6 @@
 import React from 'react';
-import { ChevronRightIcon } from '../icons/MinimalIcons';
+import { ChevronRightIcon, StarIconFilled } from '../icons/MinimalIcons';
+import { useFavorites } from '../../hooks/useFavorites';
 import clsx from 'clsx';
 
 interface Category {
@@ -14,6 +15,8 @@ interface SidebarProps {
   categories: Category[];
   selectedCategory: string | null;
   onCategorySelect: (categoryId: string | null) => void;
+  showFavoritesOnly: boolean;
+  onToggleFavorites: () => void;
   isOpen: boolean;
   onClose: () => void;
 }
@@ -22,9 +25,12 @@ export default function Sidebar({
   categories,
   selectedCategory,
   onCategorySelect,
+  showFavoritesOnly,
+  onToggleFavorites,
   isOpen,
   onClose,
 }: SidebarProps) {
+  const { favoritesCount } = useFavorites();
   const sortedCategories = [...categories].sort((a, b) => b.totalCount - a.totalCount);
 
   return (
@@ -56,10 +62,13 @@ export default function Sidebar({
           <nav className='flex-1 space-y-1 p-4'>
             {/* All Icons */}
             <button
-              onClick={() => onCategorySelect(null)}
+              onClick={() => {
+                onCategorySelect(null);
+                if (showFavoritesOnly) onToggleFavorites();
+              }}
               className={clsx(
                 'group flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors',
-                selectedCategory === null
+                selectedCategory === null && !showFavoritesOnly
                   ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300'
                   : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
               )}
@@ -67,6 +76,34 @@ export default function Sidebar({
               <span>All Icons</span>
               <span className='text-xs text-gray-500 dark:text-gray-400'>
                 {categories.reduce((sum, cat) => sum + cat.totalCount, 0)}
+              </span>
+            </button>
+
+            {/* Favorites */}
+            <button
+              onClick={() => {
+                onToggleFavorites();
+                // Clear category selection when favorites is toggled on
+                if (!showFavoritesOnly && selectedCategory !== null) {
+                  onCategorySelect(null);
+                }
+              }}
+              className={clsx(
+                'group flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors',
+                showFavoritesOnly
+                  ? 'bg-yellow-50 text-yellow-700 dark:bg-yellow-900/50 dark:text-yellow-300'
+                  : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:text-gray-100'
+              )}
+            >
+              <div className='flex items-center'>
+                <StarIconFilled className='mr-2 h-4 w-4 text-yellow-500' aria-hidden={true} />
+                <span>Favorites</span>
+                {showFavoritesOnly && (
+                  <ChevronRightIcon className='ml-2 h-4 w-4 text-yellow-500' />
+                )}
+              </div>
+              <span className='text-xs text-gray-500 dark:text-gray-400'>
+                {favoritesCount.total}
               </span>
             </button>
 

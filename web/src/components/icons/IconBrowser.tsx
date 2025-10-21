@@ -2,6 +2,8 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Icon, Emoji, SearchFilters, Category } from '../../types';
 import LazyExcalidrawPreview from './LazyExcalidrawPreview';
 import StyleFilter from '../filters/StyleFilter';
+import IconActions from './IconActions';
+import { useFavorites } from '../../hooks/useFavorites';
 
 // Constants
 const ITEMS_PER_PAGE = 25;
@@ -16,125 +18,7 @@ interface IconBrowserProps {
   error?: string | null;
 }
 
-// Icon actions dropdown component
-const IconActionsDropdown: React.FC<{
-  item: Icon | Emoji;
-  isOpen: boolean;
-  onClose: () => void;
-}> = ({ item, isOpen, onClose }) => {
-  const handleCopyToClipboard = async () => {
-    try {
-      // Use the excalidrawPath from the item data
-      const filePath = item.excalidrawPath;
 
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        throw new Error('Failed to load icon data');
-      }
-      const excalidrawData = await response.json();
-
-      // Copy to clipboard as JSON
-      await navigator.clipboard.writeText(JSON.stringify(excalidrawData, null, 2));
-
-      // TODO: Show success toast
-      // eslint-disable-next-line no-console
-      console.log('✅ Copied to clipboard:', item.displayName);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to copy to clipboard:', error);
-      // TODO: Show error toast
-    }
-    onClose();
-  };
-
-  const handleDownload = async () => {
-    try {
-      // Use the excalidrawPath from the item data
-      const filePath = item.excalidrawPath;
-
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        throw new Error('Failed to load icon data');
-      }
-      const excalidrawData = await response.json();
-
-      // Create and trigger download
-      const blob = new Blob([JSON.stringify(excalidrawData, null, 2)], {
-        type: 'application/json',
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${item.name}.excalidraw`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      // eslint-disable-next-line no-console
-      console.log('📥 Downloaded:', item.displayName);
-    } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error('❌ Failed to download:', error);
-      // TODO: Show error toast
-    }
-    onClose();
-  };
-
-  if (!isOpen) return null;
-
-  return (
-    <>
-      {/* Backdrop */}
-      <div className='fixed inset-0 z-10' onClick={onClose} />
-
-      {/* Dropdown menu */}
-      <div className='absolute right-0 top-8 z-20 w-48 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
-        <div className='py-1'>
-          <button
-            onClick={handleCopyToClipboard}
-            className='flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          >
-            <svg
-              className='mr-3 h-4 w-4'
-              fill='none'
-              viewBox='0 0 24 24'
-              strokeWidth={1.5}
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                d='M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184'
-              />
-            </svg>
-            Copy to clipboard
-          </button>
-
-          <button
-            onClick={handleDownload}
-            className='flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
-          >
-            <svg
-              className='mr-3 h-4 w-4'
-              fill='none'
-              viewBox='0 0 24 24'
-              strokeWidth={1.5}
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                d='M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3'
-              />
-            </svg>
-            Download
-          </button>
-        </div>
-      </div>
-    </>
-  );
-};
 
 const IconBrowser: React.FC<IconBrowserProps> = ({
   icons = [],
@@ -145,6 +29,9 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
   isLoading = false,
   error = null,
 }) => {
+  // Favorites hook
+  const { getFavoriteIcons, getFavoriteEmojis } = useFavorites();
+  
   // Convert category ID to category name for filtering
   const categoryName = searchFilters.category 
     ? categories.find((cat: Category) => cat.id === searchFilters.category)?.name || null 
@@ -154,8 +41,14 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
   const filteredItems = useMemo(() => {
     let filteredIcons = icons || [];
     let filteredEmojis = emojis || [];
+    
 
 
+    // Apply favorites filter if enabled
+    if (searchFilters.showFavoritesOnly) {
+      filteredIcons = getFavoriteIcons(filteredIcons);
+      filteredEmojis = getFavoriteEmojis(filteredEmojis);
+    }
 
     // Apply search query if present
     if (searchFilters.query && searchFilters.query.trim()) {
@@ -200,13 +93,10 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
     // Return combined results
     const result = [...filteredIcons, ...filteredEmojis];
     return result;
-  }, [icons, emojis, searchFilters, categoryName]);
+  }, [icons, emojis, searchFilters, categoryName, getFavoriteIcons, getFavoriteEmojis]);
 
   // Paging state
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Dropdown state
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
   // Calculate paged items
   const pagedItems = useMemo(() => {
@@ -222,6 +112,17 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
   }, [searchFilters]);
 
   const allItems = filteredItems;
+
+  // Helper function to determine if an item is an icon or emoji
+  const getItemType = (item: Icon | Emoji): 'icon' | 'emoji' => {
+    // Check if the item exists in the original icons array
+    const isIcon = icons.some(icon => icon.id === item.id);
+    const itemType = isIcon ? 'icon' : 'emoji';
+    
+
+    
+    return itemType;
+  };
 
   // Show loading state
   if (isLoading) {
@@ -264,16 +165,18 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
           <h2 className='text-lg font-semibold text-gray-900 dark:text-gray-100'>
             {searchFilters.query
               ? `Search results for "${searchFilters.query}"`
-              : categoryName
-                ? `${categoryName} items`
-                : 'All items'}
+              : searchFilters.showFavoritesOnly
+                ? 'Favorites'
+                : categoryName
+                  ? `${categoryName} items`
+                  : 'All items'}
           </h2>
           <span className='rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400'>
             {allItems.length}
           </span>
         </div>
 
-        {(searchFilters.query || searchFilters.category) && (
+        {(searchFilters.query || searchFilters.category || searchFilters.showFavoritesOnly) && (
           <button className='text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300'>
             Clear filters
           </button>
@@ -298,48 +201,17 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
                 <div className='aspect-square bg-gray-50 dark:bg-gray-800 rounded-lg mb-3 overflow-hidden'>
                   <LazyExcalidrawPreview item={item} className='w-full h-full rounded-lg' />
                 </div>
-                <div className='flex items-start justify-between'>
-                  <div className='flex-1 min-w-0'>
-                    <h3 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={`Display: ${item.displayName} | Name: ${item.name}`}>
-                      {item.displayName}
-                    </h3>
-                    <p className='text-xs text-gray-500 dark:text-gray-400 mt-1 truncate'>
-                      {item.category}
-                    </p>
-                    <p className='text-xs text-gray-500 dark:text-gray-400'>
-                      {'style' in item ? item.style : 'emoji'}
-                    </p>
-                  </div>
-                  <div className='relative'>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        setOpenDropdownId(openDropdownId === item.id ? null : item.id);
-                      }}
-                      className='ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity'
-                      title='More actions'
-                    >
-                      <svg
-                        className='h-4 w-4'
-                        fill='none'
-                        viewBox='0 0 24 24'
-                        strokeWidth={1.5}
-                        stroke='currentColor'
-                      >
-                        <path
-                          strokeLinecap='round'
-                          strokeLinejoin='round'
-                          d='M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z'
-                        />
-                      </svg>
-                    </button>
-
-                    <IconActionsDropdown
-                      item={item}
-                      isOpen={openDropdownId === item.id}
-                      onClose={() => setOpenDropdownId(null)}
-                    />
-                  </div>
+                <div className='flex-1 min-w-0'>
+                  <h3 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={`Display: ${item.displayName} | Name: ${item.name}`}>
+                    {item.displayName}
+                  </h3>
+                  <p className='text-xs text-gray-500 dark:text-gray-400 mt-1 truncate'>
+                    {item.category}
+                  </p>
+                  <p className='text-xs text-gray-500 dark:text-gray-400'>
+                    {'style' in item ? item.style : 'emoji'}
+                  </p>
+                  <IconActions item={item} itemType={getItemType(item)} />
                 </div>
               </div>
             ))}
@@ -466,10 +338,14 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
             </svg>
           </div>
           <h3 className='mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100'>
-            No items found
+            {searchFilters.showFavoritesOnly 
+              ? 'No favorites yet' 
+              : 'No items found'}
           </h3>
           <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-            Try adjusting your search terms or selected category.
+            {searchFilters.showFavoritesOnly 
+              ? 'Start adding icons and emojis to your favorites by clicking the star button on any item.'
+              : 'Try adjusting your search terms or selected category.'}
           </p>
         </div>
       )}

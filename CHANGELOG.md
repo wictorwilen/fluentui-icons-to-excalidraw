@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.21] - 2025-10-21 14:53:19 UTC
+
+
+### Added
+- **Favorites System**: Complete favorites functionality with star icons on each item, localStorage persistence, and dedicated Favorites category in sidebar for easy access to bookmarked icons and emojis
+
+### Changed
+- **Improved Card Layout**: Moved action buttons (favorite, copy, download) to bottom of preview cards for better accessibility and removed hidden dropdown menu for cleaner, more intuitive interface
+
+### Fixed
+- **Favorites Category Display**: Fixed issue where favorites weren't displaying when Favorites category was selected in sidebar due to conflicting filter states
+- **Favorites Title and Empty State**: Fixed title to show "Favorites" instead of "All items" when favorites filter is active, and improved empty state message to guide users when no favorites are saved
+- **Emoji Favorites Reliability**: Completely rewrote favorites system with simplified, unified storage approach that explicitly tracks item type, eliminating complex classification logic that caused emoji favorites to be lost or stored incorrectly
+
 ## [2025.10.21] - 2025-10-21 12:59:53 UTC
 
 

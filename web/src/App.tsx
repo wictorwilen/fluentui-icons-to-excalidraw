@@ -31,7 +31,11 @@ function App() {
     category: null,
     styles: [],
     type: 'all',
+    showFavoritesOnly: false,
   });
+  
+  // Favorites state
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
   // Load data on component mount
   useEffect(() => {
@@ -70,6 +74,8 @@ function App() {
           excalidrawPath: emoji.excalidrawPath,
         }));
 
+
+
         // Calculate category counts
         const categoryNames = dataService.getCategories();
         const categoriesData: Category[] = categoryNames.map((name, index) => {
@@ -98,14 +104,15 @@ function App() {
     loadData();
   }, []);
 
-  // Update search filters when search query or category changes
+  // Update search filters when search query, category, or favorites change
   useEffect(() => {
     setSearchFilters(prev => ({
       ...prev,
       query: searchQuery,
       category: selectedCategory,
+      showFavoritesOnly,
     }));
-  }, [searchQuery, selectedCategory]);
+  }, [searchQuery, selectedCategory, showFavoritesOnly]);
 
   // Apply dark mode class to document
   useEffect(() => {
@@ -138,6 +145,10 @@ function App() {
 
   const handleCategorySelect = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
+    // Clear favorites filter when selecting a category
+    if (showFavoritesOnly) {
+      setShowFavoritesOnly(false);
+    }
     setSidebarOpen(false); // Close sidebar on mobile after selection
   };
 
@@ -152,6 +163,10 @@ function App() {
     }));
   };
 
+  const handleToggleFavorites = () => {
+    setShowFavoritesOnly(!showFavoritesOnly);
+  };
+
   return (
     <Router>
       <div className='flex h-screen bg-gray-50 dark:bg-gray-900'>
@@ -160,6 +175,8 @@ function App() {
           categories={categories}
           selectedCategory={selectedCategory}
           onCategorySelect={handleCategorySelect}
+          showFavoritesOnly={showFavoritesOnly}
+          onToggleFavorites={handleToggleFavorites}
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />
@@ -180,7 +197,7 @@ function App() {
           <main className='flex-1 overflow-y-auto'>
             <div className='mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8'>
               {/* Hero section */}
-              {!searchQuery && !selectedCategory && (
+              {!searchQuery && !selectedCategory && !showFavoritesOnly && (
                 <div className='mb-8 text-center'>
                   <h1 className='mb-4 text-4xl font-bold text-gray-900 dark:text-gray-100'>
                     <span className='text-gradient'>Fluent Jot</span>

@@ -26,7 +26,7 @@ const ExcalidrawPreview: React.FC<ExcalidrawPreviewProps> = ({ item, className =
         const filePath = item.excalidrawPath;
 
         // eslint-disable-next-line no-console
-        console.log('Loading Excalidraw data from:', filePath);
+        // console.log('Loading Excalidraw data from:', filePath);
 
         const response = await fetch(filePath);
         if (!response.ok) {
