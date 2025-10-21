@@ -39,11 +39,12 @@ if (fs.existsSync(path.join(METADATA_DIR, 'emojis.json'))) {
 /**
  * Extract icon name from file path
  * Example: "assets/Add/SVG/ic_fluent_add_24_filled.svg" -> "add"
+ * Example: "assets/Agents/SVG/ic_fluent_agents_48_color.svg" -> "agents"
  */
 function extractIconName(filePath) {
   const parts = filePath.split('/');
   const filename = parts[parts.length - 1];
-  const match = filename.match(/ic_fluent_(.+?)_\d+_(filled|regular|light)\.svg/);
+  const match = filename.match(/ic_fluent_(.+?)_\d+_(filled|regular|light|color)\.svg/);
   return match ? match[1].replace(/_/g, '-') : filename.replace('.svg', '');
 }
 
