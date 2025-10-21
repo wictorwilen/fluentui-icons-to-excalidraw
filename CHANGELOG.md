@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Optimized Deployment Pipeline**: Deployment workflow now downloads pre-built Excalidraw files from GitHub releases instead of regenerating from source SVGs, dramatically reducing deployment time and infrastructure load
 
+### Fixed
+- **Metadata Consistency**: Deployment workflow now downloads metadata files from the same release as Excalidraw artifacts, preventing warnings about missing files due to version mismatches
+
 ## [2025.10.21] - 2025-10-21 14:53:19 UTC
 
 

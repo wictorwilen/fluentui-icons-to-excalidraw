@@ -126,16 +126,27 @@ jobs:
             RELEASE_TAG=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
             echo "📋 Latest release: $RELEASE_TAG"
             
-            # Download the pre-built excalidraw scenes
+            # Download the pre-built excalidraw scenes and metadata from the same release
             SCENES_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("excalidraw-scenes-")) | .browser_download_url')
             EMOJI_SCENES_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("excalidraw-emoji-scenes-")) | .browser_download_url')
+            ICONS_METADATA_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("icons-metadata-")) | .browser_download_url')
+            EMOJIS_METADATA_URL=$(echo "$LATEST_RELEASE" | jq -r '.assets[] | select(.name | contains("emojis-metadata-")) | .browser_download_url')
             
-            if [ "$SCENES_URL" != "null" ] && [ "$EMOJI_SCENES_URL" != "null" ]; then
+            if [ "$SCENES_URL" != "null" ] && [ "$EMOJI_SCENES_URL" != "null" ] && [ "$ICONS_METADATA_URL" != "null" ] && [ "$EMOJIS_METADATA_URL" != "null" ]; then
+              # Create metadata directory
+              mkdir -p metadata
+              
               echo "📥 Downloading icon scenes from: $SCENES_URL"
               curl -L -H "Authorization: token $GITHUB_TOKEN" "$SCENES_URL" -o excalidraw-scenes.zip
               
               echo "📥 Downloading emoji scenes from: $EMOJI_SCENES_URL"
               curl -L -H "Authorization: token $GITHUB_TOKEN" "$EMOJI_SCENES_URL" -o excalidraw-emoji-scenes.zip
+              
+              echo "📥 Downloading icon metadata from: $ICONS_METADATA_URL"
+              curl -L -H "Authorization: token $GITHUB_TOKEN" "$ICONS_METADATA_URL" -o metadata/icons.json
+              
+              echo "📥 Downloading emoji metadata from: $EMOJIS_METADATA_URL"
+              curl -L -H "Authorization: token $GITHUB_TOKEN" "$EMOJIS_METADATA_URL" -o metadata/emojis.json
               
               # Extract the archives
               echo "� Extracting icon scenes..."
@@ -146,6 +157,8 @@ jobs:
               
               # Clean up zip files
               rm excalidraw-scenes.zip excalidraw-emoji-scenes.zip
+              
+              echo "✅ Downloaded metadata from release: icons.json and emojis.json"
               
               # Verify extraction
               if [ -d "artifacts/excalidraw" ] && [ -d "artifacts/excalidraw_emojis" ]; then
@@ -162,7 +175,11 @@ jobs:
                 exit 1
               fi
             else
-              echo "❌ Could not find release artifacts URLs"
+              echo "❌ Could not find all required release artifacts URLs"
+              echo "   Scenes: $SCENES_URL"
+              echo "   Emoji scenes: $EMOJI_SCENES_URL" 
+              echo "   Icon metadata: $ICONS_METADATA_URL"
+              echo "   Emoji metadata: $EMOJIS_METADATA_URL"
               exit 1
             fi
           fi
