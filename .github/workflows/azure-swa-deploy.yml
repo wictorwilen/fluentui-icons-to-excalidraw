@@ -40,8 +40,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: web/package-lock.json
 
       - name: Cache Python packages
         uses: actions/cache@v3
@@ -51,32 +49,28 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-pip-
 
-      - name: Cache vendor directories
+      - name: Cache Node.js dependencies
         uses: actions/cache@v3
         with:
-          path: |
-            vendor/icons
-            vendor/emojis
-          key: ${{ runner.os }}-vendor-${{ github.run_id }}
+          path: web/node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('web/package*.json') }}
           restore-keys: |
-            ${{ runner.os }}-vendor-
-
-      - name: Cache artifacts directory
-        uses: actions/cache@v3
-        if: github.event.inputs.force_rebuild != 'true'
-        with:
-          path: |
-            artifacts/excalidraw
-            artifacts/excalidraw_emojis
-          key: ${{ runner.os }}-artifacts-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-artifacts-
+            ${{ runner.os }}-node-
 
       - name: Install Python dependencies
         run: |
+          echo "🐍 Setting up Python dependencies..."
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          echo "🐍 Installed Python dependencies"
+          
+          # Check if requirements.txt exists
+          if [ -f "requirements.txt" ]; then
+            echo "📋 Installing from requirements.txt..."
+            pip install -r requirements.txt
+            echo "✅ Installed Python dependencies"
+          else
+            echo "❌ requirements.txt not found"
+            exit 1
+          fi
 
       - name: Set up environment variables
         run: |
@@ -210,7 +204,17 @@ jobs:
       - name: Install Node.js dependencies
         run: |
           cd web
-          npm ci --no-optional
+          echo "📂 Checking Node.js project structure..."
+          ls -la
+          
+          # Install dependencies (use npm install if package-lock.json doesn't exist)
+          if [ -f "package-lock.json" ]; then
+            echo "📦 Using npm ci for consistent installs..."
+            npm ci --no-optional
+          else
+            echo "📦 Using npm install (no lockfile found)..."
+            npm install --no-optional
+          fi
           echo "📦 Installed Node.js dependencies"
 
       - name: Lint and type check
