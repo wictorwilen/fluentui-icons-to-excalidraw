@@ -1,264 +1,282 @@
-import Fuse from 'fuse.js';
-import { Icon, Emoji, Category, SearchFilters, SearchResult } from '../types';
+import { 
+  OptimizedIconsData, 
+  OptimizedEmojisData,
+  SearchIndex, 
+  EmojiSearchIndex,
+  CategoriesData,
+  DataDecompressor,
+  EmojiDataDecompressor,
+  DecompressedIcon,
+  DecompressedEmoji,
+  LegacyIcon,
+  LegacyEmoji 
+} from '../types/optimized-data';
 
-// Raw data types from JSON files
-interface RawIconData {
-  id?: string;
-  name?: string;
-  displayName?: string;
-  category?: string;
-  style?: string;
-  keywords?: string[];
-  excalidrawPath?: string;
-  path: string;
-}
+/**
+ * Service for loading and handling optimized icon and emoji data
+ * Supports both legacy and optimized formats for smooth migration
+ */
+export class DataService {
+  private iconsData: OptimizedIconsData | null = null;
+  private emojisData: OptimizedEmojisData | null = null;
+  private searchIndex: SearchIndex | null = null;
+  private emojiSearchIndex: EmojiSearchIndex | null = null;
+  private categoriesData: CategoriesData | null = null;
+  private iconDecompressor: DataDecompressor | null = null;
+  private emojiDecompressor: EmojiDataDecompressor | null = null;
+  private isIconsOptimized = false;
+  private isEmojisOptimized = false;
 
-interface RawEmojiData {
-  id?: string;
-  name?: string;
-  displayName?: string;
-  category?: string;
-  style?: string;
-  keywords?: string[];
-  excalidrawPath?: string;
-  skinTone?: string;
-  unicode?: string;
-  codepoint?: string;
-}
-
-class DataService {
-  private icons: Icon[] = [];
-  private emojis: Emoji[] = [];
-  private categories: Category[] = [];
-  private iconSearchIndex: Fuse<Icon> | null = null;
-  private emojiSearchIndex: Fuse<Emoji> | null = null;
-  private loaded = false;
-
-  // Initialize search indices
-  private initializeSearchIndices() {
-    const iconSearchOptions = {
-      keys: [
-        { name: 'displayName', weight: 0.4 },
-        { name: 'name', weight: 0.3 },
-        { name: 'keywords', weight: 0.2 },
-        { name: 'category', weight: 0.1 },
-      ],
-      threshold: 0.3,
-      includeScore: true,
-      minMatchCharLength: 2,
-    };
-
-    const emojiSearchOptions = {
-      keys: [
-        { name: 'displayName', weight: 0.4 },
-        { name: 'name', weight: 0.3 },
-        { name: 'keywords', weight: 0.2 },
-        { name: 'category', weight: 0.1 },
-      ],
-      threshold: 0.3,
-      includeScore: true,
-      minMatchCharLength: 2,
-    };
-
-    this.iconSearchIndex = new Fuse(this.icons, iconSearchOptions);
-    this.emojiSearchIndex = new Fuse(this.emojis, emojiSearchOptions);
-  }
-
-  // Load icon and emoji data
-  async loadData(): Promise<void> {
-    if (this.loaded) return;
-
+  /**
+   * Load icon data - automatically detects format
+   */
+  async loadIconsData(): Promise<DecompressedIcon[]> {
     try {
-      // Load real data from static JSON files
-      const [iconsResponse, emojisResponse, categoriesResponse] = await Promise.all([
-        fetch('/data/icons.json'),
-        fetch('/data/emojis.json'),
-        fetch('/data/categories.json'),
-      ]);
-
-      if (!iconsResponse.ok || !emojisResponse.ok || !categoriesResponse.ok) {
-        throw new Error('Failed to fetch data files');
+      const response = await fetch('/data/icons.json');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-
-      const [iconsData, emojisData, categoriesData] = await Promise.all([
-        iconsResponse.json(),
-        emojisResponse.json(),
-        categoriesResponse.json(),
-      ]);
-
-      // Process categories
-      this.categories = categoriesData.categories || [];
-
-      // Process icons
-      this.icons = (iconsData.icons || []).map((icon: RawIconData) => ({
-        id: icon.id || this.extractIconId(icon.path),
-        name: icon.name || this.extractIconName(icon.path),
-        displayName:
-          icon.displayName || this.formatDisplayName(icon.name || this.extractIconName(icon.path)),
-        category: icon.category || 'other',
-        style: icon.style || this.extractIconStyle(icon.path),
-        keywords: icon.keywords || [],
-        excalidrawPath:
-          icon.excalidrawPath ||
-          `/excalidraw/icons/${icon.id || this.extractIconId(icon.path)}.excalidraw`,
-        svgPath: icon.path,
-      }));
-
-      // Process emojis
-      this.emojis = (emojisData.emojis || []).map((emoji: RawEmojiData) => ({
-        id: emoji.id || emoji.name,
-        name: emoji.name || '',
-        displayName: emoji.displayName || this.formatDisplayName(emoji.name || ''),
-        category: emoji.category || 'other',
-        style: emoji.style || 'flat',
-        keywords: emoji.keywords || [],
-        excalidrawPath:
-          emoji.excalidrawPath || `/excalidraw/emojis/${emoji.id || emoji.name}.excalidraw`,
-        unicode: emoji.unicode || '',
-        codepoint: emoji.codepoint || '',
-      }));
-
-      this.initializeSearchIndices();
-      this.loaded = true;
+      
+      const data = await response.json();
+      
+      // Check if this is optimized format (has meta.compression)
+      if (data.meta && data.meta.compression) {
+        const optimizedData: OptimizedIconsData = data;
+        this.iconsData = optimizedData;
+        this.isIconsOptimized = true;
+        this.iconDecompressor = new DataDecompressor(optimizedData.meta.compression);
+        // eslint-disable-next-line no-console
+        console.log('📦 Loaded optimized icons data');
+        return this.getDecompressedIcons();
+      }
+      
+      // Legacy format (has icons array directly)
+      if (data.icons && Array.isArray(data.icons)) {
+        const legacyData: { icons: LegacyIcon[] } = data;
+        // eslint-disable-next-line no-console
+        console.log('📋 Loaded legacy icons data');
+        return legacyData.icons;
+      }
+      
+      throw new Error('Invalid icons data format - expected either optimized or legacy format');
     } catch (error) {
       // eslint-disable-next-line no-console
-      console.error('Failed to load data:', error);
-      throw new Error('Failed to load icon and emoji data');
+      console.error('❌ Failed to load icons data:', error);
+      throw error;
     }
   }
 
-  // Get all categories
-  getCategories(): Category[] {
-    return this.categories;
-  }
-
-  // Get all icons
-  getIcons(): Icon[] {
-    return this.icons;
-  }
-
-  // Get all emojis
-  getEmojis(): Emoji[] {
-    return this.emojis;
-  }
-
-  // Search icons and emojis based on filters
-  search(filters: SearchFilters, limit: number = 50, offset: number = 0): SearchResult {
-    let filteredIcons: Icon[] = [];
-    let filteredEmojis: Emoji[] = [];
-
-    // Apply text search
-    if (filters.query && filters.query.length >= 2) {
-      // Search icons
-      if (filters.type === 'all' || filters.type === 'icons') {
-        const iconResults = this.iconSearchIndex?.search(filters.query) || [];
-        filteredIcons = iconResults.map(result => result.item);
-      }
-
-      // Search emojis
-      if (filters.type === 'all' || filters.type === 'emojis') {
-        const emojiResults = this.emojiSearchIndex?.search(filters.query) || [];
-        filteredEmojis = emojiResults.map(result => result.item);
-      }
-    } else {
-      // No search query - use all items
-      if (filters.type === 'all' || filters.type === 'icons') {
-        filteredIcons = this.icons;
-      }
-      if (filters.type === 'all' || filters.type === 'emojis') {
-        filteredEmojis = this.emojis;
-      }
+  /**
+   * Load search index (optimized format only)
+   */
+  async loadSearchIndex(): Promise<SearchIndex | null> {
+    if (!this.isIconsOptimized) {
+      return null; // Search index not available in legacy format
     }
 
-    // Apply category filter
-    if (filters.category) {
-      filteredIcons = filteredIcons.filter(icon => icon.category === filters.category);
-      filteredEmojis = filteredEmojis.filter(emoji => emoji.category === filters.category);
+    try {
+      const response = await fetch('/data/search-index.json');
+      if (response.ok) {
+        this.searchIndex = await response.json();
+        // eslint-disable-next-line no-console
+        console.log('🔍 Loaded search index');
+        return this.searchIndex;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('⚠️ Failed to load search index:', error);
+    }
+    
+    return null;
+  }
+
+  /**
+   * Load categories data
+   */
+  async loadCategories(): Promise<CategoriesData | null> {
+    try {
+      const response = await fetch('/data/categories.json');
+      if (response.ok) {
+        this.categoriesData = await response.json();
+        // eslint-disable-next-line no-console
+        console.log('🏷️ Loaded categories data');
+        return this.categoriesData;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('⚠️ Failed to load categories data:', error);
+    }
+    
+    return null;
+  }
+
+  /**
+   * Get decompressed icons (for optimized format)
+   */
+  private getDecompressedIcons(): DecompressedIcon[] {
+    if (!this.iconsData || !this.iconDecompressor) {
+      return [];
     }
 
-    // Apply style filter (icons only)
-    if (filters.styles.length > 0) {
-      filteredIcons = filteredIcons.filter(icon => filters.styles.includes(icon.style));
+    return this.iconsData.icons.map(icon => this.iconDecompressor!.decompressIcon(icon));
+  }
+
+  /**
+   * Search icons using the optimized search index
+   */
+  searchIcons(query: string, icons: DecompressedIcon[]): DecompressedIcon[] {
+    if (!query.trim()) {
+      return icons;
     }
 
-    // Sort results
-    filteredIcons.sort((a, b) => a.displayName.localeCompare(b.displayName));
-    filteredEmojis.sort((a, b) => a.displayName.localeCompare(b.displayName));
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    // Use search index if available (much faster)
+    if (this.searchIndex && this.isIconsOptimized) {
+      const matchingIds = new Set(
+        this.searchIndex.index
+          .filter(entry => entry.t.includes(normalizedQuery))
+          .map(entry => entry.i)
+      );
+      
+      return icons.filter(icon => matchingIds.has(icon.id));
+    }
 
-    // Apply pagination
-    const allResults = [...filteredIcons, ...filteredEmojis];
-    const totalCount = allResults.length;
-    const paginatedResults = allResults.slice(offset, offset + limit);
+    // Fallback to direct search (legacy format)
+    return icons.filter(icon => {
+      const searchText = `${icon.name} ${icon.displayName} ${icon.keywords.join(' ')}`.toLowerCase();
+      return searchText.includes(normalizedQuery);
+    });
+  }
 
-    // Separate paginated results back into icons and emojis
-    const paginatedIcons = paginatedResults.filter(item => 'style' in item) as Icon[];
-    const paginatedEmojis = paginatedResults.filter(item => !('style' in item)) as Emoji[];
+  /**
+   * Get available categories
+   */
+  getCategories(): string[] {
+    if (this.categoriesData) {
+      return this.categoriesData.categories.map(cat => cat.name);
+    }
+    
+    // Fallback: extract from icon data
+    if (this.iconsData && this.iconDecompressor) {
+      return this.iconsData.meta.compression.categories;
+    }
+    
+    return [];
+  }
 
+  /**
+   * Get file size savings info
+   */
+  getOptimizationInfo(): { isOptimized: boolean; format: string } {
     return {
-      icons: paginatedIcons,
-      emojis: paginatedEmojis,
-      totalCount,
-      hasMore: offset + limit < totalCount,
+      isOptimized: this.isIconsOptimized,
+      format: this.isIconsOptimized ? 'optimized-v2' : 'legacy-v1'
     };
   }
 
-  // Get icons by category
-  getIconsByCategory(categoryId: string): Icon[] {
-    return this.icons.filter(icon => icon.category === categoryId);
+  /**
+   * Load emoji data - automatically detects format
+   */
+  async loadEmojisData(): Promise<DecompressedEmoji[]> {
+    try {
+      const response = await fetch('/data/emojis.json');
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      // Check if this is optimized format (has meta.compression)
+      if (data.meta && data.meta.compression) {
+        const optimizedData: OptimizedEmojisData = data;
+        this.emojisData = optimizedData;
+        this.isEmojisOptimized = true;
+        this.emojiDecompressor = new EmojiDataDecompressor(optimizedData.meta.compression);
+        // eslint-disable-next-line no-console
+        console.log('📦 Loaded optimized emojis data');
+        return this.getDecompressedEmojis();
+      }
+      
+      // Legacy format (has emojis array directly)
+      if (data.emojis && Array.isArray(data.emojis)) {
+        const legacyData: { emojis: LegacyEmoji[] } = data;
+        // eslint-disable-next-line no-console
+        console.log('📋 Loaded legacy emojis data');
+        return legacyData.emojis;
+      }
+      
+      throw new Error('Invalid emojis data format - expected either optimized or legacy format');
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to load emojis data:', error);
+      throw error;
+    }
   }
 
-  // Get emojis by category
-  getEmojisByCategory(categoryId: string): Emoji[] {
-    return this.emojis.filter(emoji => emoji.category === categoryId);
+  /**
+   * Load emoji search index (optimized format only)
+   */
+  async loadEmojiSearchIndex(): Promise<EmojiSearchIndex | null> {
+    if (!this.isEmojisOptimized) {
+      return null; // Search index not available in legacy format
+    }
+
+    try {
+      const response = await fetch('/data/emoji-search-index.json');
+      if (response.ok) {
+        this.emojiSearchIndex = await response.json();
+        // eslint-disable-next-line no-console
+        console.log('🔍 Loaded emoji search index');
+        return this.emojiSearchIndex;
+      }
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.warn('⚠️ Failed to load emoji search index:', error);
+    }
+    
+    return null;
   }
 
-  // Get popular/featured items
-  getFeaturedIcons(limit: number = 20): Icon[] {
-    // For now, just return the first N icons
-    // In a real implementation, this could be based on usage statistics
-    return this.icons.slice(0, limit);
+  /**
+   * Get decompressed emojis (for optimized format)
+   */
+  private getDecompressedEmojis(): DecompressedEmoji[] {
+    if (!this.emojisData || !this.emojiDecompressor) {
+      return [];
+    }
+
+    return this.emojisData.emojis.map(emoji => this.emojiDecompressor!.decompressEmoji(emoji));
   }
 
-  getFeaturedEmojis(limit: number = 20): Emoji[] {
-    return this.emojis.slice(0, limit);
-  }
+  /**
+   * Search emojis using the optimized search index
+   */
+  searchEmojis(query: string, emojis: DecompressedEmoji[]): DecompressedEmoji[] {
+    if (!query.trim()) {
+      return emojis;
+    }
 
-  // Helper methods for processing metadata
-  private extractIconName(filePath: string): string {
-    const parts = filePath.split('/');
-    const filename = parts[parts.length - 1];
-    const match = filename.match(/ic_fluent_(.+?)_\d+_(filled|regular|light)\.svg/);
-    return match ? match[1].replace(/_/g, '-') : filename.replace('.svg', '');
-  }
+    const normalizedQuery = query.toLowerCase().trim();
+    
+    // Use search index if available (much faster)
+    if (this.emojiSearchIndex && this.isEmojisOptimized) {
+      const matchingIds = new Set(
+        this.emojiSearchIndex.index
+          .filter(entry => entry.t.includes(normalizedQuery))
+          .map(entry => entry.i)
+      );
+      
+      return emojis.filter(emoji => matchingIds.has(emoji.id));
+    }
 
-  private extractIconId(filePath: string): string {
-    const name = this.extractIconName(filePath);
-    const size = this.extractIconSize(filePath);
-    const style = this.extractIconStyle(filePath);
-    return `${name}-${size}-${style}`;
-  }
-
-  private extractIconStyle(filePath: string): 'regular' | 'filled' | 'light' {
-    const filename = filePath.split('/').pop() || '';
-    if (filename.includes('_filled.svg')) return 'filled';
-    if (filename.includes('_light.svg')) return 'light';
-    return 'regular';
-  }
-
-  private extractIconSize(filePath: string): number {
-    const filename = filePath.split('/').pop() || '';
-    const match = filename.match(/_(\d+)_/);
-    return match ? parseInt(match[1], 10) : 24;
-  }
-
-  private formatDisplayName(name: string): string {
-    return name
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    // Fallback to direct search (legacy format)
+    return emojis.filter(emoji => {
+      const searchText = `${emoji.name} ${emoji.displayName} ${emoji.keywords.join(' ')}`.toLowerCase();
+      return searchText.includes(normalizedQuery);
+    });
   }
 }
 
-// Export singleton instance
+// Singleton instance
 export const dataService = new DataService();
-export default dataService;

@@ -5,7 +5,7 @@ import Sidebar from './components/layout/Sidebar';
 import Footer from './components/layout/Footer';
 import IconBrowser from './components/icons/IconBrowser';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { dataService } from './services/icon-data-service';
+import { dataService } from './services/dataService';
 import { Category, Icon, Emoji, SearchFilters } from './types';
 import './styles/globals.css';
 
@@ -48,17 +48,6 @@ function App() {
           dataService.loadSearchIndex(),
         ]);
 
-        // Convert categories from string[] to Category[]
-        const categoryNames = dataService.getCategories();
-        const categoriesData: Category[] = categoryNames.map((name, index) => ({
-          id: index.toString(),
-          name: name,
-          displayName: name,
-          iconCount: 0, // Will be calculated later if needed
-          emojiCount: 0, // Will be calculated later if needed
-          totalCount: 0, // Will be calculated later if needed
-        }));
-
         // Convert icons data to match expected format
         const iconsConverted: Icon[] = iconsData.map(icon => ({
           id: icon.id,
@@ -80,6 +69,21 @@ function App() {
           keywords: emoji.keywords,
           excalidrawPath: emoji.excalidrawPath,
         }));
+
+        // Calculate category counts
+        const categoryNames = dataService.getCategories();
+        const categoriesData: Category[] = categoryNames.map((name, index) => {
+          const iconCount = iconsConverted.filter(icon => icon.category === name).length;
+          const emojiCount = emojisConverted.filter(emoji => emoji.category === name).length;
+          return {
+            id: index.toString(),
+            name: name,
+            displayName: name,
+            iconCount,
+            emojiCount,
+            totalCount: iconCount + emojiCount,
+          };
+        });
 
         setCategories(categoriesData);
         setIcons(iconsConverted);
@@ -207,6 +211,7 @@ function App() {
               <IconBrowser
                 icons={icons}
                 emojis={emojis}
+                categories={categories}
                 searchFilters={searchFilters}
                 onStylesChange={handleStylesChange}
                 isLoading={isLoading}
