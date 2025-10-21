@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Metadata Consistency**: Deployment workflow now downloads metadata files from the same release as Excalidraw artifacts, preventing warnings about missing files due to version mismatches
+- **Deployment Size Optimization**: Reduced Azure SWA upload size from 1.4GB to ~119MB by excluding unnecessary build artifacts and adding .swatignore file
 
 ## [2025.10.21] - 2025-10-21 14:53:19 UTC
 

@@ -208,21 +208,36 @@ jobs:
           npm run type-check
           echo "✅ Code quality checks passed"
 
-      - name: Build application
+      - name: Prepare for deployment
         run: |
           cd web
-          echo "🏗️ Building Fluent Jot application..."
-          npm run build
-          echo "✅ Build completed successfully"
+          echo "🧹 Cleaning up build artifacts to reduce upload size..."
           
-          # Display build size information
-          echo "📊 Build size analysis:"
-          du -sh build/
-          du -sh build/static/js/*.js | head -5
-        env:
-          CI: true
-          GENERATE_SOURCEMAP: false
-          NODE_OPTIONS: '--max_old_space_size=4096'
+          # Remove build directory since Azure SWA will build the app
+          if [ -d "build" ]; then
+            rm -rf build
+            echo "✅ Removed build directory (Azure SWA will rebuild)"
+          fi
+          
+          # Display size before deployment
+          echo "📊 Web directory size for upload:"
+          du -sh .
+          
+          # Remove any cache or temporary files
+          find . -name "*.log" -delete
+          find . -name ".DS_Store" -delete
+          find . -name "*.tmp" -delete
+          
+          # Show what will be uploaded (excluding node_modules for brevity)  
+          echo "📁 Key files to upload:"
+          echo "  Source code: $(du -sh src | cut -f1)"
+          echo "  Public assets: $(du -sh public | cut -f1)"
+          echo "  Package files: $(du -sh package*.json | cut -f1 | head -1)"
+          echo "  Config files: $(find . -maxdepth 1 -name "*.config.*" -o -name "tsconfig.json" | wc -l) files"
+          
+          # Calculate and display total upload size (excluding node_modules which Azure will reinstall)
+          total_size=$(du -sh --exclude=node_modules --exclude=.git . | cut -f1)
+          echo "📦 Total upload size (excluding node_modules): $total_size"
 
       - name: Deploy to Azure Static Web Apps
         id: builddeploy
