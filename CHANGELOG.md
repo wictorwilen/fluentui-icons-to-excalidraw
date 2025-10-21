@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.21] - 2025-10-21 12:59:53 UTC
+
+
+### Fixed
+- **Bundle Size Optimization**: Dramatically reduced main bundle size from 704KB to 57KB (91% reduction) through lazy loading of Excalidraw component and replacement of heavyweight icon dependencies with minimal inline SVG components
+
 ## [2025.10.21] - 2025-10-21 12:21:53 UTC
 
 

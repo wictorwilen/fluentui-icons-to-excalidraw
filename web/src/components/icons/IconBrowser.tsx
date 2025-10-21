@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Icon, Emoji, SearchFilters, Category } from '../../types';
-import ExcalidrawPreview from './ExcalidrawPreview';
+import LazyExcalidrawPreview from './LazyExcalidrawPreview';
 import StyleFilter from '../filters/StyleFilter';
 
 // Constants
@@ -296,7 +296,7 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
             {pagedItems.map(item => (
               <div key={item.id} className='card group'>
                 <div className='aspect-square bg-gray-50 dark:bg-gray-800 rounded-lg mb-3 overflow-hidden'>
-                  <ExcalidrawPreview item={item} className='w-full h-full rounded-lg' />
+                  <LazyExcalidrawPreview item={item} className='w-full h-full rounded-lg' />
                 </div>
                 <div className='flex items-start justify-between'>
                   <div className='flex-1 min-w-0'>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { MagnifyingGlassIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
-import { SunIcon, MoonIcon } from '@heroicons/react/24/solid';
+import { MagnifyingGlassIcon, Bars3Icon, XMarkIcon, SunIcon, MoonIcon } from '../icons/MinimalIcons';
 import clsx from 'clsx';
 
 interface HeaderProps {
