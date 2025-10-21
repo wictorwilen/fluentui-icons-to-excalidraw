@@ -23,7 +23,7 @@ jobs:
   build_and_deploy_job:
     runs-on: ubuntu-latest
     name: Build and Deploy Fluent Jot
-    timeout-minutes: 45
+    timeout-minutes: 60
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -57,6 +57,31 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-node-
 
+      - name: Cache Fluent UI SVG assets
+        uses: actions/cache@v3
+        id: cache-svgs
+        with:
+          path: |
+            vendor/icons
+            vendor/emojis
+            metadata/icons.json
+            metadata/emojis.json
+          key: ${{ runner.os }}-svgs-${{ github.run_number }}-${{ github.event.inputs.force_rebuild || 'false' }}
+          restore-keys: |
+            ${{ runner.os }}-svgs-
+            
+      - name: Cache Excalidraw artifacts
+        uses: actions/cache@v3
+        id: cache-artifacts
+        if: github.event.inputs.force_rebuild != 'true'
+        with:
+          path: |
+            artifacts/excalidraw
+            artifacts/excalidraw_emojis
+          key: ${{ runner.os }}-artifacts-${{ hashFiles('vendor/**/*.svg', 'metadata/*.json') }}
+          restore-keys: |
+            ${{ runner.os }}-artifacts-
+
       - name: Install Python dependencies
         run: |
           echo "🐍 Setting up Python dependencies..."
@@ -82,107 +107,156 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "📥 Downloading Fluent UI icons and metadata..."
-          
           # Create directories
           mkdir -p metadata vendor/icons
           
-          # Fetch icons with metadata (with error handling)
-          if python3 scripts/fetch_icons.py \
-            --output metadata/icons.json \
-            --download-dir vendor/icons \
-            --force; then
-            echo "✅ Downloaded icons and generated metadata"
+          # Check if we need to download icons
+          if [ "${{ steps.cache-svgs.outputs.cache-hit }}" = "true" ] && [ "$FORCE_REBUILD" != "true" ]; then
+            echo "� Using cached Fluent UI icons..."
+            icon_count=$(find vendor/icons/assets -name "*.svg" 2>/dev/null | wc -l || echo "0")
+            echo "📊 Cached SVG files available: $icon_count"
           else
-            echo "❌ Failed to download icons"
-            exit 1
-          fi
-          
-          # Display stats
-          if [ -d "vendor/icons/assets" ]; then
-            icon_count=$(find vendor/icons/assets -name "*.svg" | wc -l)
-            echo "📊 Total SVG files downloaded: $icon_count"
+            echo "�📥 Downloading Fluent UI icons and metadata..."
             
-            if [ "$icon_count" -eq 0 ]; then
-              echo "❌ No icon files were downloaded"
+            # Determine fetch strategy
+            if [ "$FORCE_REBUILD" = "true" ]; then
+              echo "🔄 Force rebuild requested - downloading fresh icons"
+              fetch_args="--force"
+            else
+              echo "🆕 Cache miss or first run - downloading icons"
+              fetch_args="--force"
+            fi
+            
+            # Fetch icons with metadata (with error handling)
+            if python3 scripts/fetch_icons.py \
+              --output metadata/icons.json \
+              --download-dir vendor/icons \
+              $fetch_args; then
+              echo "✅ Downloaded icons and generated metadata"
+            else
+              echo "❌ Failed to download icons"
               exit 1
             fi
-          else
-            echo "❌ Icons directory not created"
-            exit 1
+            
+            # Display stats
+            if [ -d "vendor/icons/assets" ]; then
+              icon_count=$(find vendor/icons/assets -name "*.svg" | wc -l)
+              echo "📊 Total SVG files downloaded: $icon_count"
+              
+              if [ "$icon_count" -eq 0 ]; then
+                echo "❌ No icon files were downloaded"
+                exit 1
+              fi
+            else
+              echo "❌ Icons directory not created"
+              exit 1
+            fi
           fi
 
       - name: Download and process Fluent UI emojis
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "😀 Downloading Fluent UI emojis and metadata..."
-          
           # Create directories
           mkdir -p metadata vendor/emojis
           
-          # Fetch emojis with metadata (with error handling)
-          if python3 scripts/fetch_emojis.py \
-            --output metadata/emojis.json \
-            --download-dir vendor/emojis \
-            --force \
-            --preferred-style flat; then
-            echo "✅ Downloaded emojis and generated metadata"
+          # Check if we need to download emojis
+          if [ "${{ steps.cache-svgs.outputs.cache-hit }}" = "true" ] && [ "$FORCE_REBUILD" != "true" ]; then
+            echo "📋 Using cached Fluent UI emojis..."
+            emoji_count=$(find vendor/emojis/assets -name "*.svg" 2>/dev/null | wc -l || echo "0")
+            echo "📊 Cached emoji SVG files available: $emoji_count"
           else
-            echo "❌ Failed to download emojis"
-            exit 1
-          fi
-          
-          # Display stats
-          if [ -d "vendor/emojis/assets" ]; then
-            emoji_count=$(find vendor/emojis/assets -name "*.svg" | wc -l)
-            echo "📊 Total emoji SVG files downloaded: $emoji_count"
+            echo "😀 Downloading Fluent UI emojis and metadata..."
             
-            if [ "$emoji_count" -eq 0 ]; then
-              echo "❌ No emoji files were downloaded"
+            # Determine fetch strategy
+            if [ "$FORCE_REBUILD" = "true" ]; then
+              echo "🔄 Force rebuild requested - downloading fresh emojis"
+              fetch_args="--force"
+            else
+              echo "🆕 Cache miss or first run - downloading emojis"
+              fetch_args="--force"
+            fi
+            
+            # Fetch emojis with metadata (with error handling)
+            if python3 scripts/fetch_emojis.py \
+              --output metadata/emojis.json \
+              --download-dir vendor/emojis \
+              $fetch_args \
+              --preferred-style flat; then
+              echo "✅ Downloaded emojis and generated metadata"
+            else
+              echo "❌ Failed to download emojis"
               exit 1
             fi
-          else
-            echo "❌ Emojis directory not created"
-            exit 1
+            
+            # Display stats
+            if [ -d "vendor/emojis/assets" ]; then
+              emoji_count=$(find vendor/emojis/assets -name "*.svg" | wc -l)
+              echo "📊 Total emoji SVG files downloaded: $emoji_count"
+              
+              if [ "$emoji_count" -eq 0 ]; then
+                echo "❌ No emoji files were downloaded"
+                exit 1
+              fi
+            else
+              echo "❌ Emojis directory not created"
+              exit 1
+            fi
           fi
 
       - name: Generate Excalidraw files for icons
         run: |
           echo "🎨 Generating icon Excalidraw files..."
           
-          # Clear existing files if force rebuild or if they don't exist
-          if [ "$FORCE_REBUILD" = "true" ] || [ ! -d "artifacts/excalidraw" ]; then
-            rm -rf artifacts/excalidraw
-            mkdir -p artifacts/excalidraw
-            echo "🗑️ Cleared existing icon Excalidraw files"
-          fi
-          
-          # Generate Excalidraw files from all SVG sources
-          if python3 scripts/svg_to_excalidraw.py \
-            --input-dir vendor/icons/assets \
-            --output-dir artifacts/excalidraw; then
-            excalidraw_icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
-            echo "✅ Generated $excalidraw_icon_count icon Excalidraw files"
+          # Check if we can use cached artifacts
+          if [ "${{ steps.cache-artifacts.outputs.cache-hit }}" = "true" ] && [ "$FORCE_REBUILD" != "true" ]; then
+            echo "📋 Using cached icon Excalidraw files..."
+            excalidraw_icon_count=$(find artifacts/excalidraw -name '*.excalidraw' 2>/dev/null | wc -l || echo "0")
+            echo "📊 Cached Excalidraw files available: $excalidraw_icon_count"
+          else
+            echo "🎨 Generating fresh icon Excalidraw files..."
             
-            if [ "$excalidraw_icon_count" -eq 0 ]; then
-              echo "❌ No icon Excalidraw files were generated"
+            # Clear existing files if force rebuild or if they don't exist
+            if [ "$FORCE_REBUILD" = "true" ] || [ ! -d "artifacts/excalidraw" ]; then
+              rm -rf artifacts/excalidraw
+              mkdir -p artifacts/excalidraw
+              echo "🗑️ Cleared existing icon Excalidraw files"
+            fi
+            
+            # Generate Excalidraw files from all SVG sources
+            if python3 scripts/svg_to_excalidraw.py \
+              --input-dir vendor/icons/assets \
+              --output-dir artifacts/excalidraw; then
+              excalidraw_icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
+              echo "✅ Generated $excalidraw_icon_count icon Excalidraw files"
+              
+              if [ "$excalidraw_icon_count" -eq 0 ]; then
+                echo "❌ No icon Excalidraw files were generated"
+                exit 1
+              fi
+            else
+              echo "❌ Failed to generate icon Excalidraw files"
               exit 1
             fi
-          else
-            echo "❌ Failed to generate icon Excalidraw files"
-            exit 1
           fi
 
       - name: Generate Excalidraw files for emojis
         run: |
           echo "😀 Generating emoji Excalidraw files..."
           
-          # Clear existing files if force rebuild or if they don't exist
+          # Check if we can use cached artifacts
+          if [ "${{ steps.cache-artifacts.outputs.cache-hit }}" = "true" ] && [ "$FORCE_REBUILD" != "true" ]; then
+            echo "📋 Using cached emoji Excalidraw files..."
+            excalidraw_emoji_count=$(find artifacts/excalidraw_emojis -name '*.excalidraw' 2>/dev/null | wc -l || echo "0")
+            echo "📊 Cached emoji Excalidraw files available: $excalidraw_emoji_count"
+          else
+            echo "😀 Generating fresh emoji Excalidraw files..."
+            
+            # Clear existing files if force rebuild or if they don't exist
           if [ "$FORCE_REBUILD" = "true" ] || [ ! -d "artifacts/excalidraw_emojis" ]; then
             rm -rf artifacts/excalidraw_emojis
             mkdir -p artifacts/excalidraw_emojis
-            echo "�️ Cleared existing emoji Excalidraw files"
+            echo "🗑️ Cleared existing emoji Excalidraw files"
           fi
           
           # Generate Excalidraw files from all emoji SVG sources
@@ -199,6 +273,7 @@ jobs:
           else
             echo "❌ Failed to generate emoji Excalidraw files"
             exit 1
+            fi
           fi
 
       - name: Install Node.js dependencies

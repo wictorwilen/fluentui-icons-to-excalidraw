@@ -5,7 +5,7 @@ import Sidebar from './components/layout/Sidebar';
 import Footer from './components/layout/Footer';
 import IconBrowser from './components/icons/IconBrowser';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { dataService } from './services/dataService';
+import { dataService } from './services/icon-data-service';
 import { Category, Icon, Emoji, SearchFilters } from './types';
 import './styles/globals.css';
 
@@ -40,11 +40,50 @@ function App() {
         setIsLoading(true);
         setError(null);
 
-        await dataService.loadData();
+        // Load icons, emojis, categories, and search indices
+        const [iconsData, emojisData] = await Promise.all([
+          dataService.loadIconsData(),
+          dataService.loadEmojisData(),
+          dataService.loadCategories(),
+          dataService.loadSearchIndex(),
+        ]);
 
-        setCategories(dataService.getCategories());
-        setIcons(dataService.getIcons());
-        setEmojis(dataService.getEmojis());
+        // Convert categories from string[] to Category[]
+        const categoryNames = dataService.getCategories();
+        const categoriesData: Category[] = categoryNames.map((name, index) => ({
+          id: index.toString(),
+          name: name,
+          displayName: name,
+          iconCount: 0, // Will be calculated later if needed
+          emojiCount: 0, // Will be calculated later if needed
+          totalCount: 0, // Will be calculated later if needed
+        }));
+
+        // Convert icons data to match expected format
+        const iconsConverted: Icon[] = iconsData.map(icon => ({
+          id: icon.id,
+          name: icon.name,
+          displayName: icon.displayName,
+          category: icon.category,
+          style: icon.style as 'regular' | 'filled' | 'light',
+          keywords: icon.keywords,
+          excalidrawPath: icon.excalidrawPath,
+        }));
+
+        // Convert emojis data to match expected format
+        const emojisConverted: Emoji[] = emojisData.map(emoji => ({
+          id: emoji.id,
+          name: emoji.name,
+          displayName: emoji.displayName,
+          category: emoji.category,
+          style: emoji.style as 'flat' | 'color',
+          keywords: emoji.keywords,
+          excalidrawPath: emoji.excalidrawPath,
+        }));
+
+        setCategories(categoriesData);
+        setIcons(iconsConverted);
+        setEmojis(emojisConverted);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load data');
       } finally {

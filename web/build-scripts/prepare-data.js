@@ -174,11 +174,11 @@ async function processIcons(categories) {
           name: iconName,
           displayName,
           category,
-          size,
           style,
-          keywords,
-          excalidrawPath: `/excalidraw/icons/${relativePath.replace(/\\/g, '/')}`,
-          originalPath: iconData.path
+          keywords: keywords.slice(0, 8), // Limit keywords to 8 for size optimization
+          excalidrawPath: `/excalidraw/icons/${relativePath.replace(/\\/g, '/')}`
+          // Removed size field as requested
+          // Removed originalPath to reduce file size
         });
         iconStats.processed++;
       } else {
@@ -237,9 +237,9 @@ async function processEmojis(categories) {
           category: category,
           style: variant.style,
           skinTone: variant.skin_tone,
-          keywords,
-          excalidrawPath: `/excalidraw/emojis/${path.basename(excalidrawPath)}`,
-          originalPath: variant.path
+          keywords: keywords.slice(0, 8), // Limit keywords for size optimization  
+          excalidrawPath: `/excalidraw/emojis/${path.basename(excalidrawPath)}`
+          // Removed originalPath to reduce file size
         });
         emojiStats.processed++;
       } else {

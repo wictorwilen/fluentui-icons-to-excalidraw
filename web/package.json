@@ -25,8 +25,12 @@
   "scripts": {
     "start": "react-scripts start",
     "dev": "npm start",
-    "build": "npm run prepare-data && react-scripts build",
+    "build": "npm run prepare-data && npm run optimize-data && npm run optimize-emoji-data && npm run migrate-optimized && npm run migrate-emoji-optimized && react-scripts build",
     "prepare-data": "node build-scripts/prepare-data.js",
+    "optimize-data": "node build-scripts/optimize-data.js",
+    "optimize-emoji-data": "node build-scripts/optimize-emoji-data.js",
+    "migrate-optimized": "node build-scripts/migrate-to-optimized.js",
+    "migrate-emoji-optimized": "node build-scripts/migrate-emoji-to-optimized.js",
     "test": "react-scripts test --watchAll=false",
     "test:watch": "react-scripts test",
     "test:coverage": "react-scripts test --coverage --watchAll=false",
