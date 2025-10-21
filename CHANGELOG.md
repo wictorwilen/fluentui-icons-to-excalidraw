@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.21] - 2025-10-21 12:21:53 UTC
+
+
+### Fixed
+- **Deployment Configuration**: Fixed Azure Static Web App route ordering issue where wildcard route was covering specific /index.html route
+
 ## [2025.10.21] - 2025-10-21 11:20:01 UTC
 
 
