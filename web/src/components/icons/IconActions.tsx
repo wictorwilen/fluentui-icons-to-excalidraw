@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon, Emoji } from '../../types';
 import { ClipboardIcon, DownloadIcon } from './MinimalIcons';
 import FavoriteButton from './FavoriteButton';
+import { getExcalidrawUrl, getExcalidrawFetchHeaders } from '../../config/storage';
 
 interface IconActionsProps {
   item: Icon | Emoji;
@@ -15,10 +16,12 @@ const IconActions: React.FC<IconActionsProps> = ({ item, itemType, className = '
     e.stopPropagation();
     
     try {
-      // Use the excalidrawPath from the item data
-      const filePath = item.excalidrawPath;
+      // Use the excalidrawPath from the item data, converted to blob storage URL if enabled
+      const fileUrl = getExcalidrawUrl(item.excalidrawPath);
 
-      const response = await fetch(filePath);
+      const response = await fetch(fileUrl, {
+        headers: getExcalidrawFetchHeaders()
+      });
       if (!response.ok) {
         throw new Error('Failed to load icon data');
       }
@@ -42,10 +45,12 @@ const IconActions: React.FC<IconActionsProps> = ({ item, itemType, className = '
     e.stopPropagation();
     
     try {
-      // Use the excalidrawPath from the item data
-      const filePath = item.excalidrawPath;
+      // Use the excalidrawPath from the item data, converted to blob storage URL if enabled
+      const fileUrl = getExcalidrawUrl(item.excalidrawPath);
 
-      const response = await fetch(filePath);
+      const response = await fetch(fileUrl, {
+        headers: getExcalidrawFetchHeaders()
+      });
       if (!response.ok) {
         throw new Error('Failed to load icon data');
       }

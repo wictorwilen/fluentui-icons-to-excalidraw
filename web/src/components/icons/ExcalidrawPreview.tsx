@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Excalidraw } from '@excalidraw/excalidraw';
 import { ExcalidrawElement } from '@excalidraw/excalidraw/types/element/types';
 import { Icon, Emoji } from '../../types';
+import { getExcalidrawUrl, getExcalidrawFetchHeaders } from '../../config/storage';
 
 interface ExcalidrawPreviewProps {
   item: Icon | Emoji;
@@ -22,13 +23,15 @@ const ExcalidrawPreview: React.FC<ExcalidrawPreviewProps> = ({ item, className =
         setIsLoading(true);
         setError(null);
 
-        // Use the excalidrawPath from the item data
-        const filePath = item.excalidrawPath;
+        // Use the excalidrawPath from the item data, converted to blob storage URL if enabled
+        const fileUrl = getExcalidrawUrl(item.excalidrawPath);
 
         // eslint-disable-next-line no-console
-        // console.log('Loading Excalidraw data from:', filePath);
+        // console.log('Loading Excalidraw data from:', fileUrl);
 
-        const response = await fetch(filePath);
+        const response = await fetch(fileUrl, {
+          headers: getExcalidrawFetchHeaders()
+        });
         if (!response.ok) {
           throw new Error(`Failed to load Excalidraw data: ${response.status}`);
         }

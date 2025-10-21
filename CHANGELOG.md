@@ -10,12 +10,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2025.10.21] - 2025-10-21 15:03:10 UTC
 
 
+### Added
+- **Azure Blob Storage Integration**: Excalidraw files now served from Azure Blob Storage CDN instead of being bundled with the web app, enabling better scalability and performance
+
 ### Changed
 - **Optimized Deployment Pipeline**: Deployment workflow now downloads pre-built Excalidraw files from GitHub releases instead of regenerating from source SVGs, dramatically reducing deployment time and infrastructure load
+- **Hybrid Storage Architecture**: Web app (2MB) deploys to Azure SWA while Excalidraw assets (108MB, 7000+ files) are served from Azure Blob Storage with CDN caching
 
 ### Fixed
 - **Metadata Consistency**: Deployment workflow now downloads metadata files from the same release as Excalidraw artifacts, preventing warnings about missing files due to version mismatches
-- **Deployment Size Optimization**: Reduced Azure SWA upload size from 1.4GB to ~119MB by excluding unnecessary build artifacts and adding .swatignore file
+- **Azure SWA File Limits**: Moved large Excalidraw file collection to blob storage to avoid Azure Static Web Apps deployment size and file count limitations
 
 ## [2025.10.21] - 2025-10-21 14:53:19 UTC
 

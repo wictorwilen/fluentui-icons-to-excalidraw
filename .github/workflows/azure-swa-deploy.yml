@@ -208,10 +208,63 @@ jobs:
           npm run type-check
           echo "✅ Code quality checks passed"
 
+      - name: Upload Excalidraw files to Azure Blob Storage
+        env:
+          AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING }}
+        run: |
+          echo "☁️ Uploading Excalidraw files to Azure Blob Storage..."
+          
+          # Install Azure CLI if not present
+          if ! command -v az &> /dev/null; then
+            curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+          fi
+          
+          # Check if we have artifacts to upload
+          if [ -d "artifacts/excalidraw" ] && [ -d "artifacts/excalidraw_emojis" ]; then
+            # Create container if it doesn't exist (with public read access)
+            az storage container create \
+              --name excalidraw-assets \
+              --public-access blob \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --output none || true
+            
+            # Upload icon files
+            echo "📁 Uploading icon Excalidraw files..."
+            az storage blob upload-batch \
+              --destination excalidraw-assets \
+              --source artifacts/excalidraw \
+              --destination-path icons/ \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --overwrite \
+              --output none
+            
+            # Upload emoji files  
+            echo "😀 Uploading emoji Excalidraw files..."
+            az storage blob upload-batch \
+              --destination excalidraw-assets \
+              --source artifacts/excalidraw_emojis \
+              --destination-path emojis/ \
+              --connection-string "$AZURE_STORAGE_CONNECTION_STRING" \
+              --overwrite \
+              --output none
+            
+            # Count uploaded files
+            icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
+            emoji_count=$(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)
+            total_files=$((icon_count + emoji_count))
+            
+            echo "✅ Uploaded $total_files Excalidraw files to blob storage"
+            echo "   - Icons: $icon_count files"  
+            echo "   - Emojis: $emoji_count files"
+          else
+            echo "❌ No Excalidraw artifacts found to upload"
+            exit 1
+          fi
+
       - name: Prepare for deployment
         run: |
           cd web
-          echo "🧹 Cleaning up build artifacts to reduce upload size..."
+          echo "🧹 Preparing optimized deployment package..."
           
           # Remove build directory since Azure SWA will build the app
           if [ -d "build" ]; then
@@ -219,9 +272,12 @@ jobs:
             echo "✅ Removed build directory (Azure SWA will rebuild)"
           fi
           
-          # Display size before deployment
-          echo "📊 Web directory size for upload:"
-          du -sh .
+          # Remove the large public/excalidraw directory since files are now in blob storage
+          if [ -d "public/excalidraw" ]; then
+            excalidraw_size=$(du -sh public/excalidraw | cut -f1)
+            rm -rf public/excalidraw
+            echo "✅ Removed public/excalidraw directory ($excalidraw_size) - now served from blob storage"
+          fi
           
           # Remove any cache or temporary files
           find . -name "*.log" -delete
@@ -229,7 +285,7 @@ jobs:
           find . -name "*.tmp" -delete
           
           # Show what will be uploaded (excluding node_modules for brevity)  
-          echo "📁 Key files to upload:"
+          echo "📁 Optimized deployment package:"
           echo "  Source code: $(du -sh src | cut -f1)"
           echo "  Public assets: $(du -sh public | cut -f1)"
           echo "  Package files: $(du -sh package*.json | cut -f1 | head -1)"
@@ -238,6 +294,7 @@ jobs:
           # Calculate and display total upload size (excluding node_modules which Azure will reinstall)
           total_size=$(du -sh --exclude=node_modules --exclude=.git . | cut -f1)
           echo "📦 Total upload size (excluding node_modules): $total_size"
+          echo "🎯 Excalidraw files now served from Azure Blob Storage CDN"
 
       - name: Deploy to Azure Static Web Apps
         id: builddeploy
@@ -249,6 +306,10 @@ jobs:
           app_location: "/web"
           output_location: "build"
           skip_api_build: true
+        env:
+          # Configure the web app to use blob storage for Excalidraw files
+          REACT_APP_USE_BLOB_STORAGE: "true"
+          REACT_APP_BLOB_STORAGE_URL: ${{ secrets.AZURE_BLOB_STORAGE_URL }}
 
       - name: Deployment summary
         if: success()
