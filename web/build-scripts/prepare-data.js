@@ -22,8 +22,13 @@ console.log('🚀 Starting data preparation for Fluent Jot web app...');
 
 // Ensure directories exist
 fsExtra.ensureDirSync(DATA_DIR);
-fsExtra.ensureDirSync(path.join(EXCALIDRAW_DIR, 'icons'));
-fsExtra.ensureDirSync(path.join(EXCALIDRAW_DIR, 'emojis'));
+
+// Only create Excalidraw directories if not using blob storage
+const useBlobStorage = process.env.REACT_APP_USE_BLOB_STORAGE === 'true';
+if (!useBlobStorage) {
+  fsExtra.ensureDirSync(path.join(EXCALIDRAW_DIR, 'icons'));
+  fsExtra.ensureDirSync(path.join(EXCALIDRAW_DIR, 'emojis'));
+}
 
 // Copy metadata files
 console.log('📋 Copying metadata files...');
@@ -308,7 +313,16 @@ function findEmojiExcalidrawFile(emojiName) {
 }
 
 async function copyExcalidrawFiles() {
-  console.log('📁 Copying Excalidraw files...');
+  // Check if we should use blob storage instead of local files
+  const useBlobStorage = process.env.REACT_APP_USE_BLOB_STORAGE === 'true';
+  
+  if (useBlobStorage) {
+    console.log('☁️ Skipping Excalidraw file copy - using blob storage for assets');
+    console.log('🎯 Excalidraw files will be served from Azure Blob Storage');
+    return;
+  }
+  
+  console.log('📁 Copying Excalidraw files for local deployment...');
   
   const iconsSource = path.join(ARTIFACTS_DIR, 'excalidraw');
   const emojisSource = path.join(ARTIFACTS_DIR, 'excalidraw_emojis');
@@ -460,11 +474,16 @@ async function main() {
     // Generate static JSON files
     await generateStaticFiles(icons, emojis);
     
+    // Check deployment mode
+    const useBlobStorage = process.env.REACT_APP_USE_BLOB_STORAGE === 'true';
+    const deploymentMode = useBlobStorage ? 'Blob Storage' : 'Local Files';
+    
     console.log('\n🎉 Data preparation completed successfully!');
     console.log(`📊 Summary:`);
     console.log(`   - Icons: ${icons.length}`);
     console.log(`   - Emojis: ${emojis.length}`);
     console.log(`   - Total assets: ${icons.length + emojis.length}`);
+    console.log(`   - Deployment mode: ${deploymentMode}`);
     
   } catch (error) {
     console.error('\n❌ Data preparation failed:', error.message);
