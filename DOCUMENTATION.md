@@ -1,0 +1,452 @@
+# Fluent Jot - Complete Documentation
+
+This document contains comprehensive documentation for developers, advanced users, and contributors working with the Fluent Jot project.
+
+## Table of Contents
+
+- [Prerequisites](#prerequisites)
+- [Quick Start - Complete Build Pipeline](#quick-start---complete-build-pipeline)
+- [Downloading Released Artifacts](#downloading-released-artifacts)
+- [Features](#features)
+- [Troubleshooting Build Issues](#troubleshooting-build-issues)
+- [Repository Layout](#repository-layout)
+- [Detailed Instructions](#detailed-instructions)
+- [Emoji Workflows](#emoji-workflows)
+- [Regeneration Workflow](#regeneration-workflow)
+- [Development Tools](#development-tools)
+- [Automated Releases](#automated-releases)
+- [Opening Results in Excalidraw](#opening-results-in-excalidraw)
+
+## Prerequisites
+
+- Python 3.9 or newer
+- Internet access to pull SVG assets from GitHub
+- Optional: `GITHUB_TOKEN` environment variable to raise GitHub API rate limits while downloading
+
+Create and activate a virtual environment if desired:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+```
+
+## Quick Start - Complete Build Pipeline
+
+To generate all artifacts from scratch, run the complete build pipeline:
+
+### 1. Full Icon Pipeline
+```bash
+# Download all Fluent UI icons (takes 5-10 minutes)
+python3 scripts/fetch_icons.py \
+  --output metadata/icons.json \
+  --download-dir vendor/icons \
+  --force
+
+# Convert all icons to individual Excalidraw files (~5,980 files)
+python3 scripts/svg_to_excalidraw.py \
+  --input-dir vendor/icons/assets \
+  --output-dir artifacts/excalidraw
+
+# Create categorized grouped boards (recommended)
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/excalidraw_categories \
+  --group-by category \
+  --columns 8 \
+  --cell-width 220 \
+  --cell-height 240 \
+  --padding 24 \
+  --label-gap 12 \
+  --exclude-regular
+
+# Create single combined board (optional)
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/all_icons.excalidraw \
+  --exclude-regular
+```
+
+### 2. Full Emoji Pipeline
+```bash
+# Download all Fluent UI emojis (takes 5-10 minutes)
+python3 scripts/fetch_emojis.py \
+  --output metadata/emojis.json \
+  --download-dir vendor/emojis \
+  --force
+
+# Convert all emojis to individual Excalidraw files (~1,595 files)
+python3 scripts/emoji_to_excalidraw.py \
+  --input-dir vendor/emojis/assets \
+  --output-dir artifacts/excalidraw_emojis
+
+# Create categorized emoji boards (recommended)
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw_emojis \
+  --output artifacts/excalidraw_emoji_categories \
+  --group-by category \
+  --columns 5 \
+  --cell-width 200 \
+  --cell-height 180 \
+  --padding 35 \
+  --label-gap 25
+
+# Create single emoji library board (optional)
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw_emojis \
+  --output artifacts/emoji_library.excalidraw \
+  --columns 6 \
+  --cell-width 180 \
+  --cell-height 160 \
+  --padding 30 \
+  --label-gap 25
+```
+
+### 3. Build Web Application
+```bash
+# Navigate to web directory
+cd web
+
+# Install dependencies
+npm install --legacy-peer-deps
+
+# Build data files and application
+npm run build
+
+# Start development server (optional)
+npm start
+```
+
+### Expected Results
+After running the complete pipeline, your `artifacts/` directory will contain:
+
+- **Individual Files**: 5,980 icon + 1,595 emoji `.excalidraw` files
+- **Categories**: Organized category boards in `excalidraw_categories/` and `excalidraw_emoji_categories/`
+- **Combined Libraries**: `all_icons.excalidraw` and `emoji_library.excalidraw`
+- **Web Data**: Processed JSON files in `web/public/data/`
+
+## Downloading Released Artifacts
+
+1. Open the repository's [Releases](https://github.com/wictorwilen/fluentui-icons-to-excalidraw/releases) page.
+2. Locate the latest release (or the specific tag you need) and expand the **Assets** section.
+3. Download the desired `.zip` bundle, such as `excalidraw_scenes.zip` or grouped board archives, and extract it locally.
+4. Import the `.excalidraw` files into Excalidraw using *Menu → Open*.
+
+## Features
+
+### Icons
+- Fetches the Fluent UI icon set without cloning the upstream repo.
+- Converts SVG geometry into Excalidraw primitives (lines, rectangles, ellipses) with simplified polylines for a hand-drawn look.
+- Applies consistent styling: stroke width 2, stroke color `#1e1e1e`, filled backgrounds `#1971c2`, roughness 1, roundness type 3, and 4x scaling.
+- Detects circular and square path loops to use native Excalidraw ellipses and rectangles.
+- Outputs `.excalidraw` files per icon and optionally combines them into grouped boards using several strategies.
+
+### Emojis
+- Fetches Fluent UI emojis in "Flat" style (optimized for Excalidraw compatibility) without cloning the repo.
+- Uses consistent hand-drawn styling that matches the icon aesthetic.
+- Supports skin tone variations for applicable emojis.
+- Automatically categorizes emojis into themed libraries (People & Body, Smileys & Emotion, etc.).
+- Creates both individual emoji files and combined emoji libraries.
+
+## Troubleshooting Build Issues
+
+### GitHub API Rate Limits
+If you encounter rate limiting during the fetch process:
+```bash
+# Set a GitHub token to increase rate limits
+export GITHUB_TOKEN="your_personal_access_token_here"
+# Then re-run the fetch commands
+```
+
+### Memory Issues During Conversion
+If the conversion process runs out of memory:
+```bash
+# Process icons in smaller batches by directory
+python3 scripts/svg_to_excalidraw.py \
+  --input-dir vendor/icons/assets/Communication \
+  --output-dir artifacts/excalidraw
+```
+
+### Disk Space Requirements
+The complete build pipeline requires approximately:
+- **Source SVGs**: ~500 MB in `vendor/`
+- **Individual .excalidraw files**: ~1.2 GB in `artifacts/excalidraw*`
+- **Combined boards**: ~100 MB in category files
+- **Total**: ~1.8 GB free disk space recommended
+
+### Build Script Failures
+If any script fails:
+1. Check Python version: `python3 --version` (requires 3.9+)
+2. Verify internet connectivity for downloads
+3. Ensure sufficient disk space (see above)
+4. Check file permissions in the project directory
+
+### Web Application Issues
+If the web app doesn't start:
+```bash
+# Clear node modules and reinstall
+cd web
+rm -rf node_modules package-lock.json
+npm install --legacy-peer-deps
+
+# Check for missing data files
+ls -la public/data/
+# Should contain: categories.json, emojis.json, icons.json, search-index.json
+```
+
+## Repository Layout
+
+```
+artifacts/                    # Generated Excalidraw outputs (ignored by git)
+  excalidraw/                 # Individual icon Excalidraw files
+  excalidraw_emojis/          # Individual emoji Excalidraw files
+  excalidraw_categories/      # Grouped icon boards by category
+  excalidraw_emoji_categories/ # Grouped emoji boards by category
+  emoji_library.excalidraw    # Combined emoji library
+scripts/
+  fetch_icons.py        # Downloads Fluent UI icon metadata and SVG assets
+  fetch_emojis.py       # Downloads Fluent UI emoji metadata and SVG assets
+  path_parser.py        # Parses and simplifies SVG path data
+  svg_to_excalidraw.py  # Converts SVGs into Excalidraw scenes
+  emoji_to_excalidraw.py # Converts emoji SVGs into Excalidraw scenes
+  combine_excalidraw.py # Bundles per-icon/emoji scenes into grouped boards
+config/                 # Category keyword configuration for grouped boards
+metadata/               # Generated metadata for icons and emojis
+vendor/                 # Cached SVG assets
+  icons/                # Fluent UI icons
+  emojis/               # Fluent UI emojis
+```
+
+## Detailed Instructions
+
+### 1. Download the Fluent UI SVG assets
+Run the fetch script to download the required icons into `vendor/icons/assets`. Set `GITHUB_TOKEN` if you have one to raise rate limits.
+
+```bash
+python3 scripts/fetch_icons.py \
+  --output metadata/icons.json \
+  --download-dir vendor/icons \
+  --force
+```
+
+**Performance note**: This downloads ~6,000 SVG files and takes 5-10 minutes depending on your connection.
+
+The script writes metadata to `metadata/icons.json` and populates the SVG directory mirroring the upstream structure.
+
+### 2. Convert SVG icons to individual Excalidraw files
+
+Once the SVG assets exist locally, convert them into Excalidraw JSON scenes:
+
+```bash
+python3 scripts/svg_to_excalidraw.py \
+  --input-dir vendor/icons/assets \
+  --output-dir artifacts/excalidraw
+```
+
+**Performance note**: This processes ~6,000 SVG files and typically takes 2-3 minutes.
+
+This generates `.excalidraw` files with the same relative structure as the source icons. Filled icons receive a blue fill (`#1971c2`), all strokes use `#1e1e1e`, stroke width is 2, roughness is 1, and shapes are scaled 4x for easier editing.
+
+Each file is a valid Excalidraw scene that can be opened directly in the Excalidraw editor.
+
+### 3. Combine icons into larger Excalidraw boards (optional)
+
+The combine script lets you assemble the per-icon scenes into grouped boards to reduce file size and improve navigation. By default it merges everything into a single file, but you can group by top-level directory, leading letter, curated categories, first-word buckets, or fixed-size batches.
+
+Generate a single board with all icons:
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/all_icons.excalidraw
+```
+
+Add `--exclude-regular` if you want to omit the `_regular` variants while keeping filled and color icons in the combined board.
+
+Group files into curated categories (Navigation & Maps, Typography & Documents, and so on):
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/excalidraw_categories \
+  --group-by category \
+  --columns 8 \
+  --cell-width 220 \
+  --cell-height 240 \
+  --padding 24 \
+  --label-gap 12 \
+  --exclude-regular
+```
+
+Grouping writes one `.excalidraw` file per bucket into the target directory. The numeric layout options let you tweak spacing if some categories become crowded. Use `--group-by first-word` or `--group-by directory` when you need the older strategies.
+
+Category buckets include typography, communication, people, navigation, scheduling, data, organization, media, devices, security, commerce, travel, places, nature, health, utilities, and general symbols, with a fallback `Other` set for unmatched icons. Adjust the mapping by editing `config/icon_categories.json` or supply a custom file via `--categories-file` when running the combine script.
+
+### Export as Excalidraw libraries
+
+Use the `--library` flag to emit reusable `.excalidrawlib` bundles instead of full scenes. Each icon is normalized to start at the origin and grouped so it appears as a single library item once imported into Excalidraw.
+
+Create a single library file that contains every icon (regular variants excluded in this example):
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/excalidraw_library/icons.excalidrawlib \
+  --library \
+  --exclude-regular
+```
+
+Generate one library file per curated category:
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw \
+  --output artifacts/excalidraw_library_categories \
+  --group-by category \
+  --library \
+  --exclude-regular
+```
+
+Import the resulting `.excalidrawlib` files inside the Excalidraw editor via *Library → Open → Load*. Each icon appears as an individual drag-and-drop item that you can pin to your personal collection.
+
+### Supported grouping strategies
+
+- `none` (default): everything merged into the provided `--output` path.
+- `directory`: group by the first directory under the input folder.
+- `letter`: group by the first letter of the icon's label.
+- `first-word`: group by the first word in the icon label (for example `Mail`, `Accessibility`).
+- `category`: heuristic buckets such as Typography & Documents, Communication & Collaboration, Navigation & Maps, and more.
+- `batch`: fixed-size batches using `--batch-size`.
+
+When `--group-by` is not `none`, the value provided to `--output` should be a directory path where grouped files are written.
+
+## Emoji Workflows
+
+The project also includes comprehensive support for Fluent UI Emojis, following the same 3-step pattern as icons.
+
+### 1. Download the Fluent UI Emoji SVG assets
+
+Run the fetch script to download the required emojis into `vendor/emojis/assets`:
+
+```bash
+python3 scripts/fetch_emojis.py \
+  --output metadata/emojis.json \
+  --download-dir vendor/emojis \
+  --force
+```
+
+Add `--limit 50` for testing with a smaller set, or omit to download all available emojis (~2000+).
+
+### 2. Convert emoji SVGs to individual Excalidraw files
+
+Once the emoji SVG assets exist locally, convert them into Excalidraw JSON scenes:
+
+```bash
+python3 scripts/emoji_to_excalidraw.py \
+  --input-dir vendor/emojis/assets \
+  --output-dir artifacts/excalidraw_emojis
+```
+
+The emoji converter automatically maps SVG colors to the closest Excalidraw palette colors, ensuring that the flat emoji style's vibrant colors are preserved in the converted files.
+
+### 3. Combine emojis into larger Excalidraw boards (optional)
+
+Generate a single board with all emojis:
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw_emojis \
+  --output artifacts/emoji_library.excalidraw \
+  --group-by none \
+  --columns 6 \
+  --cell-width 180 \
+  --cell-height 160 \
+  --padding 30 \
+  --label-gap 25
+```
+
+Group emojis into curated categories:
+
+```bash
+python3 scripts/combine_excalidraw.py \
+  --input-dir artifacts/excalidraw_emojis \
+  --output artifacts/excalidraw_emoji_categories \
+  --group-by category \
+  --columns 5 \
+  --cell-width 200 \
+  --cell-height 180 \
+  --padding 35 \
+  --label-gap 25
+```
+
+### Emoji style and colors
+
+The system uses Fluent UI Emojis in the "Flat" style, which provides clean, simple designs that work well with Excalidraw's hand-drawn aesthetic. Other emoji styles (Color, 3D, High Contrast) contain gradients and complex styling that don't translate well to Excalidraw's vector format.
+
+The converter includes intelligent color mapping that analyzes the original SVG colors and maps them to the closest colors in Excalidraw's standard palette. This ensures that emojis retain their visual appeal and distinctiveness while remaining compatible with Excalidraw's drawing tools.
+
+### Emoji categories
+
+Emojis are automatically categorized into themed groups:
+
+- **Emojis**: All emoji-specific items (faces, hands, etc.)
+- **People & Body**: Human figures and body parts
+- **Animals & Nature**: Animals, plants, weather
+- **Food & Drink**: Food items and beverages
+- **Travel & Places**: Vehicles, buildings, geography
+- **Activities**: Sports, games, celebrations
+- **Objects**: Tools, electronics, everyday items
+- **Symbols**: Signs, arrows, geometric shapes
+- **Flags**: Country and regional flags
+
+## Regeneration Workflow
+
+Whenever you tweak the conversion logic:
+
+### For icons:
+1. Clear prior outputs if needed: `rm -rf artifacts/excalidraw artifacts/excalidraw_categories`.
+2. Re-run `svg_to_excalidraw.py` to rebuild per-icon files.
+3. Re-run `combine_excalidraw.py` with your preferred grouping.
+
+### For emojis:
+1. Clear prior outputs if needed: `rm -rf artifacts/excalidraw_emojis artifacts/excalidraw_emoji_categories`.
+2. Re-run `emoji_to_excalidraw.py` to rebuild per-emoji files.
+3. Re-run `combine_excalidraw.py` with your preferred grouping for emoji libraries.
+4. Optionally combine with icon libraries for comprehensive sets.
+
+## Development Tools
+
+### Automatic Changelog Versioning
+
+A pre-commit hook is available to automatically version changelog entries:
+
+```bash
+# Install the pre-commit hook
+cp scripts/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```
+
+When you commit changes that include updates to `CHANGELOG.md`, the hook will:
+- Convert the `[Unreleased]` section to a dated version (e.g., `[2025.10.20] - 2025-10-20 13:47:04 UTC`)
+- Create a new empty `[Unreleased]` section for future changes
+- Automatically stage the updated changelog
+
+This ensures that every commit with changelog updates creates a proper version entry with timestamps.
+
+## Automated Releases
+
+A scheduled GitHub Actions workflow (`.github/workflows/release.yml`) rebuilds the full icon and emoji cache, converts every SVG into Excalidraw scenes, generates category-based grouped boards, and publishes the outputs as a release. The workflow processes both Fluent UI icons and emojis, creating comprehensive libraries for each. Trigger it manually from the Actions tab or let the weekly schedule refresh the published archives. Adjust the categories by editing `config/icon_categories.json` before running the workflow if you need different buckets.
+
+## Opening Results in Excalidraw
+
+1. Visit [https://excalidraw.com](https://excalidraw.com) (or a self-hosted instance).
+2. Use *Menu → Open* and select any generated `.excalidraw` file.
+3. The scene loads with hand-drawn geometry that you can edit, recolor, or copy into other designs.
+
+## License Notes
+
+This repository only contains generated artifacts and helper scripts. The underlying Fluent UI icon designs belong to Microsoft and are subject to their original licensing. Review the [Fluent UI System Icons license](https://github.com/microsoft/fluentui-system-icons) before redistributing any generated assets.
+
+All code and documentation in this project were generated by GitHub Copilot without manual editing.
+
+The code in this repository is distributed under the [MIT License](LICENSE). Fluent UI and the Fluent UI icon set are trademarks of Microsoft Corporation; their assets remain licensed under the terms of the [Fluent UI System Icons repository](https://github.com/microsoft/fluentui-system-icons).

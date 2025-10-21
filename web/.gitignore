@@ -1,0 +1,126 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Production builds
+build/
+dist/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Azure Functions
+api/dist/
+api/node_modules/
+local.settings.json
+
+# Static Web Apps
+.azure/
+
+# Temporary files
+tmp/
+temp/
+
+# Cache directories
+.cache/
+.parcel-cache/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/
+
+# Generated data files (created by build-scripts/prepare-data.js)
+public/data/
+public/excalidraw/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Additional cache directories
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# ESLint cache
+.eslintcache
+
+# Stylelint cache
+.stylelintcache
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# Microbundle cache
+.rpt2_cache/
+
+# Optional npm cache directory
+.npm
+
+# PNPM files
+.pnpm-debug.log*
+/.pnp
+.pnp.js
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Storybook build outputs
+.out
+.storybook-out
+
+# Next.js build output (if ever added)
+.next
+
+# Nuxt.js build / generate output (if ever added)
+.nuxt

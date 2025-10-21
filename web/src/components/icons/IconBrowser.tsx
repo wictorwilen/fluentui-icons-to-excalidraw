@@ -1,0 +1,487 @@
+import React, { useMemo, useState, useEffect } from 'react';
+import { Icon, Emoji, SearchFilters } from '../../types';
+import { dataService } from '../../services/dataService';
+import ExcalidrawPreview from './ExcalidrawPreview';
+import StyleFilter from '../filters/StyleFilter';
+
+// Constants
+const ITEMS_PER_PAGE = 25;
+
+interface IconBrowserProps {
+  icons: Icon[];
+  emojis?: Emoji[];
+  searchFilters: SearchFilters;
+  onStylesChange: (styles: ('regular' | 'filled' | 'light' | 'flat' | 'color')[]) => void;
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+// Icon actions dropdown component
+const IconActionsDropdown: React.FC<{
+  item: Icon | Emoji;
+  isOpen: boolean;
+  onClose: () => void;
+}> = ({ item, isOpen, onClose }) => {
+  const handleCopyToClipboard = async () => {
+    try {
+      // Use the excalidrawPath from the item data
+      const filePath = item.excalidrawPath;
+
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        throw new Error('Failed to load icon data');
+      }
+      const excalidrawData = await response.json();
+
+      // Copy to clipboard as JSON
+      await navigator.clipboard.writeText(JSON.stringify(excalidrawData, null, 2));
+
+      // TODO: Show success toast
+      // eslint-disable-next-line no-console
+      console.log('✅ Copied to clipboard:', item.displayName);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to copy to clipboard:', error);
+      // TODO: Show error toast
+    }
+    onClose();
+  };
+
+  const handleDownload = async () => {
+    try {
+      // Use the excalidrawPath from the item data
+      const filePath = item.excalidrawPath;
+
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        throw new Error('Failed to load icon data');
+      }
+      const excalidrawData = await response.json();
+
+      // Create and trigger download
+      const blob = new Blob([JSON.stringify(excalidrawData, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${item.name}.excalidraw`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // eslint-disable-next-line no-console
+      console.log('📥 Downloaded:', item.displayName);
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error('❌ Failed to download:', error);
+      // TODO: Show error toast
+    }
+    onClose();
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className='fixed inset-0 z-10' onClick={onClose} />
+
+      {/* Dropdown menu */}
+      <div className='absolute right-0 top-8 z-20 w-48 rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none'>
+        <div className='py-1'>
+          <button
+            onClick={handleCopyToClipboard}
+            className='flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          >
+            <svg
+              className='mr-3 h-4 w-4'
+              fill='none'
+              viewBox='0 0 24 24'
+              strokeWidth={1.5}
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184'
+              />
+            </svg>
+            Copy to clipboard
+          </button>
+
+          <button
+            onClick={handleDownload}
+            className='flex w-full items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+          >
+            <svg
+              className='mr-3 h-4 w-4'
+              fill='none'
+              viewBox='0 0 24 24'
+              strokeWidth={1.5}
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3'
+              />
+            </svg>
+            Download
+          </button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+const IconBrowser: React.FC<IconBrowserProps> = ({
+  icons,
+  emojis = [],
+  searchFilters,
+  onStylesChange,
+  isLoading = false,
+  error = null,
+}) => {
+  // Helper function to convert category ID to category name
+  const getCategoryNameFromId = (categoryId: string | null): string | null => {
+    if (!categoryId) return null;
+
+    // The category ID is generated by: name.toLowerCase().replace(/\s+/g, '-')
+    // So we need to reverse this: convert dashes to spaces and capitalize each word
+    return categoryId
+      .split('-')
+      .map(word => {
+        // Handle special cases like '&'
+        if (word === '&') return '&';
+        return word.charAt(0).toUpperCase() + word.slice(1);
+      })
+      .join(' ');
+  };
+
+  // Convert category ID to category name for display
+  const categoryName = getCategoryNameFromId(searchFilters.category);
+
+  // Filter and combine icons and emojis based on search filters
+  const filteredItems = useMemo(() => {
+    let filteredIcons = icons;
+    let filteredEmojis = emojis;
+
+    // Apply search query if present
+    if (searchFilters.query && searchFilters.query.trim()) {
+      // Create a copy of filters without category for initial search
+      const searchOnlyFilters = {
+        ...searchFilters,
+        category: null, // Remove category filter from search to get broader results
+      };
+
+      const searchResults = dataService.search(searchOnlyFilters);
+      filteredIcons = searchResults.icons;
+      filteredEmojis = searchResults.emojis;
+
+      // Then apply category filter to search results if category is selected
+      if (categoryName) {
+        filteredIcons = filteredIcons.filter(icon => icon.category === categoryName);
+        filteredEmojis = filteredEmojis.filter(emoji => emoji.category === categoryName);
+      }
+    } else if (categoryName) {
+      // Filter by exact category name match
+      filteredIcons = icons.filter(icon => icon.category === categoryName);
+      filteredEmojis = emojis.filter(emoji => emoji.category === categoryName);
+    }
+
+    // Apply style filter for icons and emojis
+    if (searchFilters.styles.length > 0) {
+      filteredIcons = filteredIcons.filter(icon => searchFilters.styles.includes(icon.style));
+      filteredEmojis = filteredEmojis.filter(emoji => searchFilters.styles.includes(emoji.style));
+    }
+
+    // Apply type filter (icons, emojis, or all)
+    if (searchFilters.type === 'icons') {
+      return filteredIcons;
+    } else if (searchFilters.type === 'emojis') {
+      return filteredEmojis;
+    }
+
+    // Return combined results
+    const result = [...filteredIcons, ...filteredEmojis];
+    return result;
+  }, [icons, emojis, searchFilters, categoryName]);
+
+  // Paging state
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Dropdown state
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+
+  // Calculate paged items
+  const pagedItems = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredItems.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredItems, currentPage]);
+
+  const totalPages = Math.ceil(filteredItems.length / ITEMS_PER_PAGE);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchFilters]);
+
+  const allItems = filteredItems;
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className='flex items-center justify-center py-12'>
+        <div className='text-center'>
+          <div className='inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary-600 border-r-transparent'></div>
+          <p className='mt-2 text-sm text-gray-600 dark:text-gray-400'>Loading icons...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className='text-center py-12'>
+        <div className='mx-auto h-12 w-12 text-red-400'>
+          <svg fill='none' viewBox='0 0 24 24' strokeWidth={1.5} stroke='currentColor'>
+            <path
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              d='M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z'
+            />
+          </svg>
+        </div>
+        <h3 className='mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100'>
+          Error loading data
+        </h3>
+        <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>{error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className='space-y-6'>
+      {/* Results header */}
+      <div className='flex items-center justify-between'>
+        <div className='flex items-center space-x-2'>
+          <h2 className='text-lg font-semibold text-gray-900 dark:text-gray-100'>
+            {searchFilters.query
+              ? `Search results for "${searchFilters.query}"`
+              : categoryName
+                ? `${categoryName} items`
+                : 'All items'}
+          </h2>
+          <span className='rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-800 dark:text-gray-400'>
+            {allItems.length}
+          </span>
+        </div>
+
+        {(searchFilters.query || searchFilters.category) && (
+          <button className='text-sm text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300'>
+            Clear filters
+          </button>
+        )}
+      </div>
+
+      {/* Filters */}
+      <div className='flex flex-col space-y-4'>
+        <StyleFilter
+          selectedStyles={searchFilters.styles}
+          onStylesChange={onStylesChange}
+          className='sm:max-w-md'
+        />
+      </div>
+
+      {/* Item grid */}
+      {allItems.length > 0 ? (
+        <>
+          <div className='grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'>
+            {pagedItems.map(item => (
+              <div key={item.id} className='card group'>
+                <div className='aspect-square bg-gray-50 dark:bg-gray-800 rounded-lg mb-3 overflow-hidden'>
+                  <ExcalidrawPreview item={item} className='w-full h-full rounded-lg' />
+                </div>
+                <div className='flex items-start justify-between'>
+                  <div className='flex-1 min-w-0'>
+                    <h3 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'>
+                      {item.displayName}
+                    </h3>
+                    <p className='text-xs text-gray-500 dark:text-gray-400 mt-1 truncate'>
+                      {item.category}
+                    </p>
+                    <p className='text-xs text-gray-500 dark:text-gray-400'>
+                      {'style' in item ? item.style : 'emoji'}
+                    </p>
+                  </div>
+                  <div className='relative'>
+                    <button
+                      onClick={e => {
+                        e.stopPropagation();
+                        setOpenDropdownId(openDropdownId === item.id ? null : item.id);
+                      }}
+                      className='ml-2 p-1 rounded-md text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-opacity'
+                      title='More actions'
+                    >
+                      <svg
+                        className='h-4 w-4'
+                        fill='none'
+                        viewBox='0 0 24 24'
+                        strokeWidth={1.5}
+                        stroke='currentColor'
+                      >
+                        <path
+                          strokeLinecap='round'
+                          strokeLinejoin='round'
+                          d='M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z'
+                        />
+                      </svg>
+                    </button>
+
+                    <IconActionsDropdown
+                      item={item}
+                      isOpen={openDropdownId === item.id}
+                      onClose={() => setOpenDropdownId(null)}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className='flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-6'>
+              <div className='flex flex-1 justify-between sm:hidden'>
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className='relative inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className='relative ml-3 inline-flex items-center rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed'
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className='hidden sm:flex sm:flex-1 sm:items-center sm:justify-between'>
+                <div>
+                  <p className='text-sm text-gray-700 dark:text-gray-300'>
+                    Showing{' '}
+                    <span className='font-medium'>{(currentPage - 1) * ITEMS_PER_PAGE + 1}</span> to{' '}
+                    <span className='font-medium'>
+                      {Math.min(currentPage * ITEMS_PER_PAGE, allItems.length)}
+                    </span>{' '}
+                    of <span className='font-medium'>{allItems.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav
+                    className='isolate inline-flex -space-x-px rounded-md shadow-sm'
+                    aria-label='Pagination'
+                  >
+                    <button
+                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                      disabled={currentPage === 1}
+                      className='relative inline-flex items-center rounded-l-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                      <span className='sr-only'>Previous</span>
+                      <svg
+                        className='h-5 w-5'
+                        viewBox='0 0 20 20'
+                        fill='currentColor'
+                        aria-hidden='true'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M12.79 5.23a.75.75 0 01-.02 1.06L8.832 10l3.938 3.71a.75.75 0 11-1.04 1.08l-4.5-4.25a.75.75 0 010-1.08l4.5-4.25a.75.75 0 011.06.02z'
+                          clipRule='evenodd'
+                        />
+                      </svg>
+                    </button>
+
+                    {/* Page numbers */}
+                    {Array.from({ length: Math.min(7, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 7) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 4) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 3) {
+                        pageNum = totalPages - 6 + i;
+                      } else {
+                        pageNum = currentPage - 3 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
+                            currentPage === pageNum
+                              ? 'z-10 bg-primary-600 text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600'
+                              : 'text-gray-900 dark:text-gray-100 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                      disabled={currentPage === totalPages}
+                      className='relative inline-flex items-center rounded-r-md px-2 py-2 text-gray-400 dark:text-gray-500 ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed'
+                    >
+                      <span className='sr-only'>Next</span>
+                      <svg
+                        className='h-5 w-5'
+                        viewBox='0 0 20 20'
+                        fill='currentColor'
+                        aria-hidden='true'
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z'
+                          clipRule='evenodd'
+                        />
+                      </svg>
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        <div className='text-center py-12'>
+          <div className='mx-auto h-12 w-12 text-gray-400 dark:text-gray-600'>
+            <svg fill='none' viewBox='0 0 24 24' strokeWidth={1.5} stroke='currentColor'>
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                d='M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z'
+              />
+            </svg>
+          </div>
+          <h3 className='mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100'>
+            No items found
+          </h3>
+          <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
+            Try adjusting your search terms or selected category.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default IconBrowser;

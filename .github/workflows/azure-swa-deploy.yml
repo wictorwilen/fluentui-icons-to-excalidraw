@@ -1,0 +1,263 @@
+name: Deploy Fluent Jot to Azure Static Web Apps
+
+on:
+  # On-demand deployment only
+  workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: 'Force rebuild all Excalidraw files (ignore cache)'
+        required: false
+        default: false
+        type: boolean
+      deployment_message:
+        description: 'Deployment message'
+        required: false
+        default: 'Manual deployment'
+        type: string
+
+env:
+  NODE_VERSION: '18'
+  PYTHON_VERSION: '3.9'
+
+jobs:
+  build_and_deploy_job:
+    runs-on: ubuntu-latest
+    name: Build and Deploy Fluent Jot
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: web/package-lock.json
+
+      - name: Cache Python packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache vendor directories
+        uses: actions/cache@v3
+        with:
+          path: |
+            vendor/icons
+            vendor/emojis
+          key: ${{ runner.os }}-vendor-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-vendor-
+
+      - name: Cache artifacts directory
+        uses: actions/cache@v3
+        if: github.event.inputs.force_rebuild != 'true'
+        with:
+          path: |
+            artifacts/excalidraw
+            artifacts/excalidraw_emojis
+          key: ${{ runner.os }}-artifacts-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-artifacts-
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "🐍 Installed Python dependencies"
+
+      - name: Set up environment variables
+        run: |
+          echo "FORCE_REBUILD=${{ github.event.inputs.force_rebuild }}" >> $GITHUB_ENV
+          echo "DEPLOYMENT_MESSAGE=${{ github.event.inputs.deployment_message }}" >> $GITHUB_ENV
+          echo "🔧 Environment configured"
+
+      - name: Download and process Fluent UI icons
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "📥 Downloading Fluent UI icons and metadata..."
+          
+          # Create directories
+          mkdir -p metadata vendor/icons
+          
+          # Fetch icons with metadata (with error handling)
+          if python3 scripts/fetch_icons.py \
+            --output metadata/icons.json \
+            --download-dir vendor/icons \
+            --force; then
+            echo "✅ Downloaded icons and generated metadata"
+          else
+            echo "❌ Failed to download icons"
+            exit 1
+          fi
+          
+          # Display stats
+          if [ -d "vendor/icons/assets" ]; then
+            icon_count=$(find vendor/icons/assets -name "*.svg" | wc -l)
+            echo "📊 Total SVG files downloaded: $icon_count"
+            
+            if [ "$icon_count" -eq 0 ]; then
+              echo "❌ No icon files were downloaded"
+              exit 1
+            fi
+          else
+            echo "❌ Icons directory not created"
+            exit 1
+          fi
+
+      - name: Download and process Fluent UI emojis
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "😀 Downloading Fluent UI emojis and metadata..."
+          
+          # Create directories
+          mkdir -p metadata vendor/emojis
+          
+          # Fetch emojis with metadata (with error handling)
+          if python3 scripts/fetch_emojis.py \
+            --output metadata/emojis.json \
+            --download-dir vendor/emojis \
+            --force \
+            --preferred-style flat; then
+            echo "✅ Downloaded emojis and generated metadata"
+          else
+            echo "❌ Failed to download emojis"
+            exit 1
+          fi
+          
+          # Display stats
+          if [ -d "vendor/emojis/assets" ]; then
+            emoji_count=$(find vendor/emojis/assets -name "*.svg" | wc -l)
+            echo "📊 Total emoji SVG files downloaded: $emoji_count"
+            
+            if [ "$emoji_count" -eq 0 ]; then
+              echo "❌ No emoji files were downloaded"
+              exit 1
+            fi
+          else
+            echo "❌ Emojis directory not created"
+            exit 1
+          fi
+
+      - name: Generate Excalidraw files for icons
+        run: |
+          echo "🎨 Generating icon Excalidraw files..."
+          
+          # Clear existing files if force rebuild or if they don't exist
+          if [ "$FORCE_REBUILD" = "true" ] || [ ! -d "artifacts/excalidraw" ]; then
+            rm -rf artifacts/excalidraw
+            mkdir -p artifacts/excalidraw
+            echo "🗑️ Cleared existing icon Excalidraw files"
+          fi
+          
+          # Generate Excalidraw files from all SVG sources
+          if python3 scripts/svg_to_excalidraw.py \
+            --input-dir vendor/icons/assets \
+            --output-dir artifacts/excalidraw; then
+            excalidraw_icon_count=$(find artifacts/excalidraw -name '*.excalidraw' | wc -l)
+            echo "✅ Generated $excalidraw_icon_count icon Excalidraw files"
+            
+            if [ "$excalidraw_icon_count" -eq 0 ]; then
+              echo "❌ No icon Excalidraw files were generated"
+              exit 1
+            fi
+          else
+            echo "❌ Failed to generate icon Excalidraw files"
+            exit 1
+          fi
+
+      - name: Generate Excalidraw files for emojis
+        run: |
+          echo "😀 Generating emoji Excalidraw files..."
+          
+          # Clear existing files if force rebuild or if they don't exist
+          if [ "$FORCE_REBUILD" = "true" ] || [ ! -d "artifacts/excalidraw_emojis" ]; then
+            rm -rf artifacts/excalidraw_emojis
+            mkdir -p artifacts/excalidraw_emojis
+            echo "�️ Cleared existing emoji Excalidraw files"
+          fi
+          
+          # Generate Excalidraw files from all emoji SVG sources
+          if python3 scripts/emoji_to_excalidraw.py \
+            --input-dir vendor/emojis/assets \
+            --output-dir artifacts/excalidraw_emojis; then
+            excalidraw_emoji_count=$(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)
+            echo "✅ Generated $excalidraw_emoji_count emoji Excalidraw files"
+            
+            if [ "$excalidraw_emoji_count" -eq 0 ]; then
+              echo "❌ No emoji Excalidraw files were generated"
+              exit 1
+            fi
+          else
+            echo "❌ Failed to generate emoji Excalidraw files"
+            exit 1
+          fi
+
+      - name: Install Node.js dependencies
+        run: |
+          cd web
+          npm ci --no-optional
+          echo "📦 Installed Node.js dependencies"
+
+      - name: Lint and type check
+        run: |
+          cd web
+          echo "🔍 Running linting and type checks..."
+          npm run lint:check
+          npm run type-check
+          echo "✅ Code quality checks passed"
+
+      - name: Build application
+        run: |
+          cd web
+          echo "🏗️ Building Fluent Jot application..."
+          npm run build
+          echo "✅ Build completed successfully"
+          
+          # Display build size information
+          echo "📊 Build size analysis:"
+          du -sh build/
+          du -sh build/static/js/*.js | head -5
+        env:
+          CI: true
+          GENERATE_SOURCEMAP: false
+          NODE_OPTIONS: '--max_old_space_size=4096'
+
+      - name: Deploy to Azure Static Web Apps
+        id: builddeploy
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: "upload"
+          app_location: "/web"
+          output_location: "build"
+          skip_api_build: true
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "🎉 Fluent Jot deployed successfully!"
+          echo "💬 Deployment message: $DEPLOYMENT_MESSAGE"
+          echo "🌐 Application URL: ${{ steps.builddeploy.outputs.static_web_app_url }}"
+          echo "📊 Total build assets: $(find web/build -type f | wc -l) files"
+          echo "🎨 Icons available: $(find artifacts/excalidraw -name '*.excalidraw' | wc -l)"
+          echo "😀 Emojis available: $(find artifacts/excalidraw_emojis -name '*.excalidraw' | wc -l)"
+          
+          # Calculate total size
+          build_size=$(du -sh web/build | cut -f1)
+          echo "📦 Total build size: $build_size"

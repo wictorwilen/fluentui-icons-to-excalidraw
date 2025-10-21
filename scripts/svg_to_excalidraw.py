@@ -167,7 +167,7 @@ def _parse_style_attribute(elem: ET.Element) -> dict[str, str]:
 
 
 WHITE_VALUES = {"white", "#fff", "#ffffff"}
-SIZE_PATTERN = re.compile(r"^(?P<prefix>ic_fluent_[a-z0-9_]+?)_(?P<size>\d+)(?P<suffix>.*)$")
+SIZE_PATTERN = re.compile(r"^(?P<prefix>ic_fluent_.*?)_(?P<size>(?:16|20|24|28|32|48|56|64|72|96|128|256))(?P<suffix>_.*)$")
 
 
 def _strip_size_token(stem: str) -> str:
