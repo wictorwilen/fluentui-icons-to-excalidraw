@@ -1,7 +1,11 @@
 import React from 'react';
 import { useAnalytics } from '../../hooks/useAnalytics';
 
-export default function Footer() {
+interface FooterProps {
+  onShowCookiePreferences: () => void;
+}
+
+export default function Footer({ onShowCookiePreferences }: FooterProps) {
   const analytics = useAnalytics();
 
   const handleExternalLink = (url: string, linkText: string) => {
@@ -19,7 +23,12 @@ export default function Footer() {
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
-                onClick={() => handleExternalLink('https://github.com/microsoft/fluentui-system-icons', 'Microsoft Fluent UI')}
+                onClick={() =>
+                  handleExternalLink(
+                    'https://github.com/microsoft/fluentui-system-icons',
+                    'Microsoft Fluent UI'
+                  )
+                }
               >
                 Microsoft Fluent UI
               </a>
@@ -32,7 +41,12 @@ export default function Footer() {
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
-                onClick={() => handleExternalLink('https://github.com/microsoft/fluentui-system-icons/blob/main/LICENSE', 'MIT License')}
+                onClick={() =>
+                  handleExternalLink(
+                    'https://github.com/microsoft/fluentui-system-icons/blob/main/LICENSE',
+                    'MIT License'
+                  )
+                }
               >
                 MIT License
               </a>
@@ -40,12 +54,32 @@ export default function Footer() {
           </div>
 
           <div className='flex items-center gap-4 text-[10px] sm:text-xs'>
+            <button
+              onClick={onShowCookiePreferences}
+              className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+            >
+              Cookie Settings
+            </button>
+            <span className='text-gray-300 dark:text-gray-600'>•</span>
+            <a
+              href='mailto:help@fluentjot.design'
+              className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+              onClick={() => handleExternalLink('mailto:help@fluentjot.design', 'Help Email')}
+            >
+              Help
+            </a>
+            <span className='text-gray-300 dark:text-gray-600'>•</span>
             <a
               href='https://github.com/wictorwilen/fluentui-icons-to-excalidraw'
               target='_blank'
               rel='noopener noreferrer'
               className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
-              onClick={() => handleExternalLink('https://github.com/wictorwilen/fluentui-icons-to-excalidraw', 'GitHub Repository')}
+              onClick={() =>
+                handleExternalLink(
+                  'https://github.com/wictorwilen/fluentui-icons-to-excalidraw',
+                  'GitHub Repository'
+                )
+              }
             >
               GitHub
             </a>
@@ -57,7 +91,9 @@ export default function Footer() {
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
-                onClick={() => handleExternalLink('https://www.wictorwilen.se', 'Wictor Wilén Profile')}
+                onClick={() =>
+                  handleExternalLink('https://www.wictorwilen.se', 'Wictor Wilén Profile')
+                }
               >
                 Wictor Wilén
               </a>

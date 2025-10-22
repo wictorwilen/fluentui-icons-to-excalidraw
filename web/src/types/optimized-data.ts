@@ -15,13 +15,13 @@ export interface OptimizedIconsData {
 }
 
 export interface OptimizedIcon {
-  i: string;    // id
-  n: string;    // name
-  d: string;    // displayName
-  c: number;    // category (index into categories array)
-  s: number;    // style (index into styles array)
-  k: string[];  // keywords (compressed)
-  e: string;    // excalidrawPath (compressed)
+  i: string; // id
+  n: string; // name
+  d: string; // displayName
+  c: number; // category (index into categories array)
+  s: number; // style (index into styles array)
+  k: string[]; // keywords (compressed)
+  e: string; // excalidrawPath (compressed)
 }
 
 export interface SearchIndex {
@@ -63,7 +63,7 @@ export class DataDecompressor {
       category: this.categories[icon.c],
       style: this.styles[icon.s],
       keywords: icon.k,
-      excalidrawPath: this.decompressPath(icon.e)
+      excalidrawPath: this.decompressPath(icon.e),
     };
   }
 
@@ -75,11 +75,11 @@ export class DataDecompressor {
 
     const prefixIndex = parseInt(compressedPath.substring(0, colonIndex));
     const suffix = compressedPath.substring(colonIndex + 1);
-    
+
     if (prefixIndex >= 0 && prefixIndex < this.commonPaths.length) {
       return this.commonPaths[prefixIndex] + suffix;
     }
-    
+
     return compressedPath; // Fallback
   }
 }
@@ -114,14 +114,14 @@ export interface OptimizedEmojisData {
 }
 
 export interface OptimizedEmoji {
-  i: string;    // id
-  n: string;    // name
-  d: string;    // displayName
-  c: number;    // category (index into categories array)
-  s: number;    // style (index into styles array)
-  t: number;    // skinTone (index into skinTones array, -1 for null)
-  k: string[];  // keywords (compressed)
-  e: string;    // excalidrawPath (compressed)
+  i: string; // id
+  n: string; // name
+  d: string; // displayName
+  c: number; // category (index into categories array)
+  s: number; // style (index into styles array)
+  t: number; // skinTone (index into skinTones array, -1 for null)
+  k: string[]; // keywords (compressed)
+  e: string; // excalidrawPath (compressed)
 }
 
 export interface EmojiSearchIndex {
@@ -170,7 +170,7 @@ export class EmojiDataDecompressor {
       style: this.styles[emoji.s],
       skinTone: emoji.t >= 0 ? this.skinTones[emoji.t] : null,
       keywords: emoji.k,
-      excalidrawPath: this.decompressPath(emoji.e)
+      excalidrawPath: this.decompressPath(emoji.e),
     };
   }
 
@@ -182,11 +182,11 @@ export class EmojiDataDecompressor {
 
     const prefixIndex = parseInt(compressedPath.substring(0, colonIndex));
     const suffix = compressedPath.substring(colonIndex + 1);
-    
+
     if (prefixIndex >= 0 && prefixIndex < this.commonPaths.length) {
       return this.commonPaths[prefixIndex] + suffix;
     }
-    
+
     return compressedPath; // Fallback
   }
 }

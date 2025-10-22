@@ -110,9 +110,7 @@ export default function Sidebar({
               <div className='flex items-center'>
                 <StarIconFilled className='mr-2 h-4 w-4 text-yellow-500' aria-hidden={true} />
                 <span>Favorites</span>
-                {showFavoritesOnly && (
-                  <ChevronRightIcon className='ml-2 h-4 w-4 text-yellow-500' />
-                )}
+                {showFavoritesOnly && <ChevronRightIcon className='ml-2 h-4 w-4 text-yellow-500' />}
               </div>
               <span className='text-xs text-gray-500 dark:text-gray-400'>
                 {favoritesCount.total}

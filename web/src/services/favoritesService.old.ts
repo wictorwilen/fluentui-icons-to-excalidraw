@@ -31,17 +31,17 @@ class FavoritesService {
         const parsed: StoredFavorites = JSON.parse(stored);
         return {
           icons: new Set(parsed.icons || []),
-          emojis: new Set(parsed.emojis || [])
+          emojis: new Set(parsed.emojis || []),
         };
       }
     } catch (error) {
       // eslint-disable-next-line no-console
       console.warn('Failed to load favorites from localStorage:', error);
     }
-    
+
     return {
       icons: new Set(),
-      emojis: new Set()
+      emojis: new Set(),
     };
   }
 
@@ -50,7 +50,7 @@ class FavoritesService {
       const toStore: StoredFavorites = {
         icons: Array.from(this.favorites.icons),
         emojis: Array.from(this.favorites.emojis),
-        version: '1.0'
+        version: '1.0',
       };
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(toStore));
       this.notifyListeners();
@@ -111,7 +111,7 @@ class FavoritesService {
     return {
       icons: this.favorites.icons.size,
       emojis: this.favorites.emojis.size,
-      total: this.favorites.icons.size + this.favorites.emojis.size
+      total: this.favorites.icons.size + this.favorites.emojis.size,
     };
   }
 
@@ -129,11 +129,11 @@ class FavoritesService {
     // The corrupted emoji IDs follow a pattern like 'people-add-32-color'
     // Real emoji IDs are like '1st-place-medal', 'smiling-face', etc.
     const corruptedPattern = /-\d+-(color|flat)$/;
-    
-    const corruptedEmojis = Array.from(this.favorites.emojis).filter(id => 
+
+    const corruptedEmojis = Array.from(this.favorites.emojis).filter(id =>
       corruptedPattern.test(id)
     );
-    
+
     if (corruptedEmojis.length > 0) {
       // eslint-disable-next-line no-console
       console.log('🧹 Clearing', corruptedEmojis.length, 'corrupted emoji favorites');
@@ -147,14 +147,14 @@ class FavoritesService {
     return {
       icons: Array.from(this.favorites.icons),
       emojis: Array.from(this.favorites.emojis),
-      version: '1.0'
+      version: '1.0',
     };
   }
 
   public importFavorites(data: StoredFavorites): void {
     this.favorites = {
       icons: new Set(data.icons || []),
-      emojis: new Set(data.emojis || [])
+      emojis: new Set(data.emojis || []),
     };
     this.saveToStorage();
   }

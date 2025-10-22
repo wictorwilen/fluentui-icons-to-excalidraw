@@ -4,14 +4,16 @@ export const config = {
   blobStorage: {
     // Base URL for the blob storage container
     // In production, this should use Azure CDN for better performance
-    baseUrl: process.env.REACT_APP_BLOB_STORAGE_URL || 'https://fluentjotdesign.blob.core.windows.net/excalidraw-assets',
-    
+    baseUrl:
+      process.env.REACT_APP_BLOB_STORAGE_URL ||
+      'https://fluentjotdesign.blob.core.windows.net/excalidraw-assets',
+
     // Enable/disable blob storage (fallback to local files during development)
-    enabled: process.env.REACT_APP_USE_BLOB_STORAGE !== 'false'
+    enabled: process.env.REACT_APP_USE_BLOB_STORAGE !== 'false',
   },
-  
+
   // Fallback to local files when blob storage is disabled
-  localExcalidrawPath: '/excalidraw'
+  localExcalidrawPath: '/excalidraw',
 };
 
 /**
@@ -23,12 +25,12 @@ export function getExcalidrawUrl(localPath: string): string {
   if (!config.blobStorage.enabled) {
     return localPath;
   }
-  
+
   // Remove the "/excalidraw/" prefix and construct blob URL
   // "/excalidraw/icons/..." -> "icons/..."
   // "/excalidraw/emojis/..." -> "emojis/..."
   const blobPath = localPath.replace(/^\/excalidraw\//, '');
-  
+
   return `${config.blobStorage.baseUrl}/${blobPath}`;
 }
 
@@ -39,9 +41,9 @@ export function getExcalidrawFetchHeaders(): HeadersInit {
   if (!config.blobStorage.enabled) {
     return {};
   }
-  
+
   // Add CORS and cache headers for blob storage requests
   return {
-    'Cache-Control': 'public, max-age=3600'
+    'Cache-Control': 'public, max-age=3600',
   };
 }

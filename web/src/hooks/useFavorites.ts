@@ -18,7 +18,7 @@ interface UseFavoritesReturn {
 
 export const useFavorites = (): UseFavoritesReturn => {
   const [, setUpdateTrigger] = useState(0);
-  
+
   useEffect(() => {
     // Subscribe to favorites changes
     const unsubscribe = favoritesService.addListener(() => {
@@ -31,8 +31,9 @@ export const useFavorites = (): UseFavoritesReturn => {
   return {
     // New simplified API
     isFavorite: (itemId: string) => favoritesService.isFavorite(itemId),
-    toggleFavorite: (item: Icon | Emoji, itemType: 'icon' | 'emoji') => favoritesService.toggleFavorite(item, itemType),
-    
+    toggleFavorite: (item: Icon | Emoji, itemType: 'icon' | 'emoji') =>
+      favoritesService.toggleFavorite(item, itemType),
+
     // Legacy methods for backward compatibility
     isIconFavorite: (iconId: string) => favoritesService.isIconFavorite(iconId),
     isEmojiFavorite: (emojiId: string) => favoritesService.isEmojiFavorite(emojiId),

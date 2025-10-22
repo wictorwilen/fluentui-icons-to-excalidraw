@@ -37,15 +37,13 @@ class FavoritesService {
       const stored = localStorage.getItem(FAVORITES_STORAGE_KEY);
       if (stored) {
         const parsed: StoredFavorites = JSON.parse(stored);
-        
+
         // Handle new format
         if (parsed.items && Array.isArray(parsed.items)) {
-          this.favorites.items = new Map(
-            parsed.items.map(item => [item.id, item.type])
-          );
+          this.favorites.items = new Map(parsed.items.map(item => [item.id, item.type]));
           return;
         }
-        
+
         // Handle legacy format
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const legacy = parsed as any;
@@ -73,9 +71,9 @@ class FavoritesService {
       const toStore: StoredFavorites = {
         items: Array.from(this.favorites.items.entries()).map(([id, type]) => ({
           id,
-          type
+          type,
         })),
-        version: '2.0'
+        version: '2.0',
       };
       localStorage.setItem(FAVORITES_STORAGE_KEY, JSON.stringify(toStore));
     } catch (error) {
@@ -101,11 +99,11 @@ class FavoritesService {
     } else {
       this.favorites.items.set(item.id, itemType);
     }
-    
+
     this.saveToStorage();
     this.notifyListeners();
   }
-  
+
   public isFavorite(itemId: string): boolean {
     return this.favorites.items.has(itemId);
   }
@@ -150,16 +148,16 @@ class FavoritesService {
   public getFavoritesCount(): { icons: number; emojis: number; total: number } {
     let icons = 0;
     let emojis = 0;
-    
-    this.favorites.items.forEach((type) => {
+
+    this.favorites.items.forEach(type => {
       if (type === 'icon') icons++;
       else if (type === 'emoji') emojis++;
     });
-    
+
     return {
       icons,
       emojis,
-      total: icons + emojis
+      total: icons + emojis,
     };
   }
 

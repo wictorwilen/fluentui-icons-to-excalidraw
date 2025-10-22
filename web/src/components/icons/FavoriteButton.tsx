@@ -17,7 +17,7 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ item, itemType, classNa
   const handleToggleFavorite = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     toggleFavorite(item, itemType);
   };
 
@@ -30,8 +30,8 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ item, itemType, classNa
     ${className}
   `;
 
-  const iconClasses = isItemFavorite 
-    ? 'w-5 h-5 text-yellow-500 hover:text-yellow-600' 
+  const iconClasses = isItemFavorite
+    ? 'w-5 h-5 text-yellow-500 hover:text-yellow-600'
     : 'w-5 h-5 text-gray-400 hover:text-yellow-500';
 
   return (

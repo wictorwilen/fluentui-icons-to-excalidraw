@@ -30,7 +30,7 @@ const ExcalidrawPreview: React.FC<ExcalidrawPreviewProps> = ({ item, className =
         // console.log('Loading Excalidraw data from:', fileUrl);
 
         const response = await fetch(fileUrl, {
-          headers: getExcalidrawFetchHeaders()
+          headers: getExcalidrawFetchHeaders(),
         });
         if (!response.ok) {
           throw new Error(`Failed to load Excalidraw data: ${response.status}`);

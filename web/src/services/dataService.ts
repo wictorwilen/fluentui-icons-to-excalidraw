@@ -1,7 +1,7 @@
-import { 
-  OptimizedIconsData, 
+import {
+  OptimizedIconsData,
   OptimizedEmojisData,
-  SearchIndex, 
+  SearchIndex,
   EmojiSearchIndex,
   CategoriesData,
   DataDecompressor,
@@ -9,7 +9,7 @@ import {
   DecompressedIcon,
   DecompressedEmoji,
   LegacyIcon,
-  LegacyEmoji 
+  LegacyEmoji,
 } from '../types/optimized-data';
 
 /**
@@ -36,9 +36,9 @@ export class DataService {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Check if this is optimized format (has meta.compression)
       if (data.meta && data.meta.compression) {
         const optimizedData: OptimizedIconsData = data;
@@ -49,7 +49,7 @@ export class DataService {
         console.log('📦 Loaded optimized icons data');
         return this.getDecompressedIcons();
       }
-      
+
       // Legacy format (has icons array directly)
       if (data.icons && Array.isArray(data.icons)) {
         const legacyData: { icons: LegacyIcon[] } = data;
@@ -57,7 +57,7 @@ export class DataService {
         console.log('📋 Loaded legacy icons data');
         return legacyData.icons;
       }
-      
+
       throw new Error('Invalid icons data format - expected either optimized or legacy format');
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -86,7 +86,7 @@ export class DataService {
       // eslint-disable-next-line no-console
       console.warn('⚠️ Failed to load search index:', error);
     }
-    
+
     return null;
   }
 
@@ -106,7 +106,7 @@ export class DataService {
       // eslint-disable-next-line no-console
       console.warn('⚠️ Failed to load categories data:', error);
     }
-    
+
     return null;
   }
 
@@ -130,7 +130,7 @@ export class DataService {
     }
 
     const normalizedQuery = query.toLowerCase().trim();
-    
+
     // Use search index if available (much faster)
     if (this.searchIndex && this.isIconsOptimized) {
       const matchingIds = new Set(
@@ -138,13 +138,14 @@ export class DataService {
           .filter(entry => entry.t.includes(normalizedQuery))
           .map(entry => entry.i)
       );
-      
+
       return icons.filter(icon => matchingIds.has(icon.id));
     }
 
     // Fallback to direct search (legacy format)
     return icons.filter(icon => {
-      const searchText = `${icon.name} ${icon.displayName} ${icon.keywords.join(' ')}`.toLowerCase();
+      const searchText =
+        `${icon.name} ${icon.displayName} ${icon.keywords.join(' ')}`.toLowerCase();
       return searchText.includes(normalizedQuery);
     });
   }
@@ -156,12 +157,12 @@ export class DataService {
     if (this.categoriesData) {
       return this.categoriesData.categories.map(cat => cat.name);
     }
-    
+
     // Fallback: extract from icon data
     if (this.iconsData && this.iconDecompressor) {
       return this.iconsData.meta.compression.categories;
     }
-    
+
     return [];
   }
 
@@ -171,7 +172,7 @@ export class DataService {
   getOptimizationInfo(): { isOptimized: boolean; format: string } {
     return {
       isOptimized: this.isIconsOptimized,
-      format: this.isIconsOptimized ? 'optimized-v2' : 'legacy-v1'
+      format: this.isIconsOptimized ? 'optimized-v2' : 'legacy-v1',
     };
   }
 
@@ -184,9 +185,9 @@ export class DataService {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const data = await response.json();
-      
+
       // Check if this is optimized format (has meta.compression)
       if (data.meta && data.meta.compression) {
         const optimizedData: OptimizedEmojisData = data;
@@ -197,7 +198,7 @@ export class DataService {
         console.log('📦 Loaded optimized emojis data');
         return this.getDecompressedEmojis();
       }
-      
+
       // Legacy format (has emojis array directly)
       if (data.emojis && Array.isArray(data.emojis)) {
         const legacyData: { emojis: LegacyEmoji[] } = data;
@@ -205,7 +206,7 @@ export class DataService {
         console.log('📋 Loaded legacy emojis data');
         return legacyData.emojis;
       }
-      
+
       throw new Error('Invalid emojis data format - expected either optimized or legacy format');
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -234,7 +235,7 @@ export class DataService {
       // eslint-disable-next-line no-console
       console.warn('⚠️ Failed to load emoji search index:', error);
     }
-    
+
     return null;
   }
 
@@ -258,7 +259,7 @@ export class DataService {
     }
 
     const normalizedQuery = query.toLowerCase().trim();
-    
+
     // Use search index if available (much faster)
     if (this.emojiSearchIndex && this.isEmojisOptimized) {
       const matchingIds = new Set(
@@ -266,13 +267,14 @@ export class DataService {
           .filter(entry => entry.t.includes(normalizedQuery))
           .map(entry => entry.i)
       );
-      
+
       return emojis.filter(emoji => matchingIds.has(emoji.id));
     }
 
     // Fallback to direct search (legacy format)
     return emojis.filter(emoji => {
-      const searchText = `${emoji.name} ${emoji.displayName} ${emoji.keywords.join(' ')}`.toLowerCase();
+      const searchText =
+        `${emoji.name} ${emoji.displayName} ${emoji.keywords.join(' ')}`.toLowerCase();
       return searchText.includes(normalizedQuery);
     });
   }

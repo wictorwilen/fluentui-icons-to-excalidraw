@@ -18,8 +18,6 @@ interface IconBrowserProps {
   error?: string | null;
 }
 
-
-
 const IconBrowser: React.FC<IconBrowserProps> = ({
   icons = [],
   emojis = [],
@@ -31,18 +29,16 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
 }) => {
   // Favorites hook
   const { getFavoriteIcons, getFavoriteEmojis } = useFavorites();
-  
+
   // Convert category ID to category name for filtering
-  const categoryName = searchFilters.category 
-    ? categories.find((cat: Category) => cat.id === searchFilters.category)?.name || null 
+  const categoryName = searchFilters.category
+    ? categories.find((cat: Category) => cat.id === searchFilters.category)?.name || null
     : null;
 
   // Filter and combine icons and emojis based on search filters
   const filteredItems = useMemo(() => {
     let filteredIcons = icons || [];
     let filteredEmojis = emojis || [];
-    
-
 
     // Apply favorites filter if enabled
     if (searchFilters.showFavoritesOnly) {
@@ -53,21 +49,24 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
     // Apply search query if present
     if (searchFilters.query && searchFilters.query.trim()) {
       const query = searchFilters.query.toLowerCase();
-      
+
       // Simple text search on icon properties
-      filteredIcons = filteredIcons.filter(icon => 
-        icon.displayName.toLowerCase().includes(query) ||
-        icon.name.toLowerCase().includes(query) ||
-        (icon.keywords && icon.keywords.some(keyword => keyword.toLowerCase().includes(query))) ||
-        icon.category.toLowerCase().includes(query)
+      filteredIcons = filteredIcons.filter(
+        icon =>
+          icon.displayName.toLowerCase().includes(query) ||
+          icon.name.toLowerCase().includes(query) ||
+          (icon.keywords && icon.keywords.some(keyword => keyword.toLowerCase().includes(query))) ||
+          icon.category.toLowerCase().includes(query)
       );
-      
+
       // Simple text search on emoji properties
-      filteredEmojis = filteredEmojis.filter(emoji => 
-        emoji.displayName.toLowerCase().includes(query) ||
-        emoji.name.toLowerCase().includes(query) ||
-        (emoji.keywords && emoji.keywords.some(keyword => keyword.toLowerCase().includes(query))) ||
-        emoji.category.toLowerCase().includes(query)
+      filteredEmojis = filteredEmojis.filter(
+        emoji =>
+          emoji.displayName.toLowerCase().includes(query) ||
+          emoji.name.toLowerCase().includes(query) ||
+          (emoji.keywords &&
+            emoji.keywords.some(keyword => keyword.toLowerCase().includes(query))) ||
+          emoji.category.toLowerCase().includes(query)
       );
     }
 
@@ -118,9 +117,7 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
     // Check if the item exists in the original icons array
     const isIcon = icons.some(icon => icon.id === item.id);
     const itemType = isIcon ? 'icon' : 'emoji';
-    
 
-    
     return itemType;
   };
 
@@ -202,7 +199,10 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
                   <LazyExcalidrawPreview item={item} className='w-full h-full rounded-lg' />
                 </div>
                 <div className='flex-1 min-w-0'>
-                  <h3 className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate' title={`Display: ${item.displayName} | Name: ${item.name}`}>
+                  <h3
+                    className='text-sm font-medium text-gray-900 dark:text-gray-100 truncate'
+                    title={`Display: ${item.displayName} | Name: ${item.name}`}
+                  >
                     {item.displayName}
                   </h3>
                   <p className='text-xs text-gray-500 dark:text-gray-400 mt-1 truncate'>
@@ -338,12 +338,10 @@ const IconBrowser: React.FC<IconBrowserProps> = ({
             </svg>
           </div>
           <h3 className='mt-2 text-sm font-semibold text-gray-900 dark:text-gray-100'>
-            {searchFilters.showFavoritesOnly 
-              ? 'No favorites yet' 
-              : 'No items found'}
+            {searchFilters.showFavoritesOnly ? 'No favorites yet' : 'No items found'}
           </h3>
           <p className='mt-1 text-sm text-gray-500 dark:text-gray-400'>
-            {searchFilters.showFavoritesOnly 
+            {searchFilters.showFavoritesOnly
               ? 'Start adding icons and emojis to your favorites by clicking the star button on any item.'
               : 'Try adjusting your search terms or selected category.'}
           </p>

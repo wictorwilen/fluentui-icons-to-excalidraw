@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.22] - 2025-10-22 09:44:59 UTC
+
+
+### Added
+- **EU Cookie Consent**: Comprehensive GDPR-compliant cookie consent system with granular controls for necessary, analytics, marketing, and preference cookies
+- **Cookie Preferences Management**: Users can customize cookie settings through modal interface accessible from header and footer
+- **Privacy-Aware Analytics**: Google Analytics initialization now respects user cookie preferences and only loads when consent is granted
+- **Cookie Settings Persistence**: User preferences are stored for one year and can be updated at any time through the interface
+- **Help Email Link**: Added "Help" link in footer that opens email client to contact help@fluentjot.design
+
 ## [2025.10.22] - 2025-10-22 06:26:53 UTC
 
 

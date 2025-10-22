@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter as Router } from 'react-router-dom';
+import { CookiesProvider } from 'react-cookie';
 import Header from './components/layout/Header';
 import Sidebar from './components/layout/Sidebar';
 import Footer from './components/layout/Footer';
 import IconBrowser from './components/icons/IconBrowser';
+import CookieConsentBanner from './components/common/CookieConsentBanner';
+import CookiePreferencesModal from './components/common/CookiePreferencesModal';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { usePageTracking } from './hooks/useAnalytics';
+import { useConsentAwareAnalytics } from './hooks/useConsentAwareAnalytics';
 import { dataService } from './services/dataService';
-import { initializeGA } from './services/analytics';
 import { Category, Icon, Emoji, SearchFilters } from './types';
 import './styles/globals.css';
 
@@ -16,18 +19,19 @@ function AppContent() {
   // Initialize page tracking
   usePageTracking();
 
+  // Initialize consent-aware analytics
+  useConsentAwareAnalytics();
+
   // Theme management
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false);
-
-  // Initialize Google Analytics
-  useEffect(() => {
-    initializeGA();
-  }, []);
 
   // Search and filtering
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Cookie preferences modal
+  const [showCookiePreferences, setShowCookiePreferences] = useState(false);
 
   // Data state
   const [categories, setCategories] = useState<Category[]>([]);
@@ -44,7 +48,7 @@ function AppContent() {
     type: 'all',
     showFavoritesOnly: false,
   });
-  
+
   // Favorites state
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
 
@@ -84,8 +88,6 @@ function AppContent() {
           keywords: emoji.keywords,
           excalidrawPath: emoji.excalidrawPath,
         }));
-
-
 
         // Calculate category counts
         const categoryNames = dataService.getCategories();
@@ -179,86 +181,97 @@ function AppContent() {
   };
 
   return (
-      <div className='flex h-screen bg-gray-50 dark:bg-gray-900'>
-        {/* Sidebar */}
-        <Sidebar
-          categories={categories}
-          selectedCategory={selectedCategory}
-          onCategorySelect={handleCategorySelect}
-          showFavoritesOnly={showFavoritesOnly}
-          onToggleFavorites={handleToggleFavorites}
-          isOpen={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
+    <div className='flex h-screen bg-gray-50 dark:bg-gray-900'>
+      {/* Sidebar */}
+      <Sidebar
+        categories={categories}
+        selectedCategory={selectedCategory}
+        onCategorySelect={handleCategorySelect}
+        showFavoritesOnly={showFavoritesOnly}
+        onToggleFavorites={handleToggleFavorites}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+
+      {/* Main content */}
+      <div className='flex flex-1 flex-col overflow-hidden'>
+        {/* Header */}
+        <Header
+          searchQuery={searchQuery}
+          onSearchChange={handleSearchChange}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={handleToggleDarkMode}
+          onToggleSidebar={handleToggleSidebar}
+          sidebarOpen={sidebarOpen}
+          onShowCookiePreferences={() => setShowCookiePreferences(true)}
         />
 
-        {/* Main content */}
-        <div className='flex flex-1 flex-col overflow-hidden'>
-          {/* Header */}
-          <Header
-            searchQuery={searchQuery}
-            onSearchChange={handleSearchChange}
-            isDarkMode={isDarkMode}
-            onToggleDarkMode={handleToggleDarkMode}
-            onToggleSidebar={handleToggleSidebar}
-            sidebarOpen={sidebarOpen}
-          />
-
-          {/* Main content area */}
-          <main className='flex-1 overflow-y-auto'>
-            <div className='mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8'>
-              {/* Hero section */}
-              {!searchQuery && !selectedCategory && !showFavoritesOnly && (
-                <div className='mb-8 text-center'>
-                  <h1 className='mb-4 text-4xl font-bold text-gray-900 dark:text-gray-100'>
-                    <span className='text-gradient'>Fluent Jot</span>
-                  </h1>
-                  <p className='mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300'>
-                    Browse and download Microsoft's Fluent UI icons and emojis in beautiful
-                    hand-drawn Excalidraw format. Perfect for wireframes, mockups, and design
-                    sketches.
-                  </p>
-                  <div className='mt-6 flex flex-wrap justify-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
-                    <span className='flex items-center'>
-                      <span className='mr-2 h-2 w-2 rounded-full bg-primary-500'></span>
-                      5,980+ Icons
-                    </span>
-                    <span className='flex items-center'>
-                      <span className='mr-2 h-2 w-2 rounded-full bg-accent-500'></span>
-                      1,595+ Emojis
-                    </span>
-                    <span className='flex items-center'>
-                      <span className='mr-2 h-2 w-2 rounded-full bg-green-500'></span>
-                      Free to Use
-                    </span>
-                  </div>
+        {/* Main content area */}
+        <main className='flex-1 overflow-y-auto'>
+          <div className='mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8'>
+            {/* Hero section */}
+            {!searchQuery && !selectedCategory && !showFavoritesOnly && (
+              <div className='mb-8 text-center'>
+                <h1 className='mb-4 text-4xl font-bold text-gray-900 dark:text-gray-100'>
+                  <span className='text-gradient'>Fluent Jot</span>
+                </h1>
+                <p className='mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300'>
+                  Browse and download Microsoft's Fluent UI icons and emojis in beautiful hand-drawn
+                  Excalidraw format. Perfect for wireframes, mockups, and design sketches.
+                </p>
+                <div className='mt-6 flex flex-wrap justify-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
+                  <span className='flex items-center'>
+                    <span className='mr-2 h-2 w-2 rounded-full bg-primary-500'></span>
+                    5,980+ Icons
+                  </span>
+                  <span className='flex items-center'>
+                    <span className='mr-2 h-2 w-2 rounded-full bg-accent-500'></span>
+                    1,595+ Emojis
+                  </span>
+                  <span className='flex items-center'>
+                    <span className='mr-2 h-2 w-2 rounded-full bg-green-500'></span>
+                    Free to Use
+                  </span>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Icon Browser */}
-              <IconBrowser
-                icons={icons}
-                emojis={emojis}
-                categories={categories}
-                searchFilters={searchFilters}
-                onStylesChange={handleStylesChange}
-                isLoading={isLoading}
-                error={error}
-              />
-            </div>
-          </main>
-        </div>
-
-        {/* Fixed Footer */}
-        <Footer />
+            {/* Icon Browser */}
+            <IconBrowser
+              icons={icons}
+              emojis={emojis}
+              categories={categories}
+              searchFilters={searchFilters}
+              onStylesChange={handleStylesChange}
+              isLoading={isLoading}
+              error={error}
+            />
+          </div>
+        </main>
       </div>
+
+      {/* Fixed Footer */}
+      <Footer onShowCookiePreferences={() => setShowCookiePreferences(true)} />
+
+      {/* Cookie Consent Banner */}
+      <CookieConsentBanner />
+
+      {/* Cookie Preferences Modal */}
+      <CookiePreferencesModal
+        isOpen={showCookiePreferences}
+        onClose={() => setShowCookiePreferences(false)}
+      />
+    </div>
   );
 }
 
 function App() {
   return (
-    <Router>
-      <AppContent />
-    </Router>
+    <CookiesProvider>
+      <Router>
+        <AppContent />
+      </Router>
+    </CookiesProvider>
   );
 }
 
