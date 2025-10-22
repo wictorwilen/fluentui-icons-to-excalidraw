@@ -38,11 +38,15 @@ npm install
 npm run prepare-data
 
 # Start development server
-npm start
-
-# Alternative: Start with SWA CLI for full simulation
-npm run start:swa
+npm run dev
 ```
+
+**IMPORTANT - Developer Responsibility**: 
+- The **developer/user is responsible** for running `npm run dev` to start the development server
+- **Agents should NOT automatically start the development server** to avoid port collisions and multiple running instances
+- Agents should periodically remind developers to start/restart the dev server when needed
+- If development server issues arise, guide the developer to restart it manually
+- **Agents CAN automatically open the built-in web browser** to inspect results once the developer has started the server
 
 ### Build and Deploy
 ```bash
@@ -266,6 +270,11 @@ Deployment is automatic via GitHub Actions:
 
 ### Common Issues
 
+**Development Server Not Running**
+- **Developer Action Required**: Run `npm run dev` to start the development server
+- **Agent Reminder**: Agents should guide developers to start the server, not do it automatically
+- **Port Conflicts**: If port 3000 is busy, the developer should stop other instances or use a different port
+
 **Build Fails - Missing Data**
 ```bash
 # Ensure parent project has generated artifacts
@@ -339,6 +348,21 @@ The application **MUST** prominently display:
 - **API**: Public API for third-party integration
 
 ## Agent Guidelines
+
+### Development Server Management
+- **NEVER automatically start the development server** (`npm run dev`, `npm start`, etc.)
+- **Always remind the developer** to start/restart the server when changes require it
+- **Avoid port collisions** by ensuring only the developer controls server instances
+- **Periodically check** if the developer needs to restart the server for changes to take effect
+- **Guide troubleshooting** but let the developer execute server commands
+- **DO automatically open the built-in web browser** to inspect results and show changes to the developer
+- **Use the built-in browser** to verify functionality after code changes are made
+
+Example reminder phrases:
+- "Please run `npm run dev` to start the development server and see your changes"
+- "You may need to restart your development server for these changes to take effect"  
+- "Don't forget to start the dev server with `npm run dev` if it's not already running"
+- "Let me open the built-in browser to show you the results once your server is running"
 
 ### Code Quality
 - Follow TypeScript strict mode

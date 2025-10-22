@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { XMarkIcon } from '../icons/MinimalIcons';
-import { useCookieConsent, CookieConsentState } from '../../hooks/useCookieConsent';
+import { useCookieConsent } from '../../hooks/useCookieConsent';
+import { CookieConsentState } from '../../constants/consent';
 
 interface CookiePreferencesModalProps {
   isOpen: boolean;

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.22] - 2025-10-22 18:32:56 UTC
+
+
+### Changed
+- **Simplified Google Analytics**: Replaced complex Consent Mode v2 with standard GA implementation that only loads when user consents to analytics
+- **Streamlined Consent Management**: Simplified consent handling to basic on/off analytics tracking instead of granular consent modes
+
+### Fixed
+- **Cookie Consent Bug**: Fixed critical bug where analytics service used incorrect cookie key, preventing proper consent checking
+- **Production Debug Mode**: Google Analytics debug mode now only enabled in development environment instead of always being active
+- **Code Organization**: Consolidated cookie consent constants into shared file to prevent future inconsistencies
+
 ## [2025.10.22] - 2025-10-22 09:44:59 UTC
 
 

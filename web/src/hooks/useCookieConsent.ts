@@ -1,13 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useCookies } from 'react-cookie';
 import { updateGAConsent } from '../services/analytics';
-
-export interface CookieConsentState {
-  necessary: boolean;
-  analytics: boolean;
-  marketing: boolean;
-  preferences: boolean;
-}
+import { COOKIE_CONSENT_KEY, COOKIE_CONSENT_VERSION, CookieConsentState, DEFAULT_COOKIE_CONSENT_STATE } from '../constants/consent';
 
 export interface CookieConsentHook {
   hasConsent: boolean;
@@ -19,15 +13,7 @@ export interface CookieConsentHook {
   resetConsent: () => void;
 }
 
-const COOKIE_CONSENT_KEY = 'cookie_consent';
-const COOKIE_CONSENT_VERSION = '1.0';
 
-const defaultConsentState: CookieConsentState = {
-  necessary: true, // Always true, can't be disabled
-  analytics: false,
-  marketing: false,
-  preferences: false,
-};
 
 export function useCookieConsent(): CookieConsentHook {
   const [cookies, setCookie, removeCookie] = useCookies([COOKIE_CONSENT_KEY]);
@@ -90,7 +76,7 @@ export function useCookieConsent(): CookieConsentHook {
 
   const rejectAll = () => {
     // Only accept necessary cookies
-    saveConsent(defaultConsentState);
+    saveConsent(DEFAULT_COOKIE_CONSENT_STATE);
   };
 
   const resetConsent = () => {

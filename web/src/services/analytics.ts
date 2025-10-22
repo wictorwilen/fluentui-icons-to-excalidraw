@@ -1,6 +1,8 @@
 /**
- * Google Analytics tracking utilities with Google Consent Mode v2 support
+ * Google Analytics tracking utilities with basic consent support
  */
+
+import { COOKIE_CONSENT_KEY } from '../constants/consent';
 
 // Extend the Window interface to include gtag
 declare global {
@@ -11,14 +13,13 @@ declare global {
 }
 
 let gaInitialized = false;
-let consentInitialized = false;
 
 /**
  * Get current consent state from cookies
  */
 const getConsentState = () => {
   if (typeof document === 'undefined') return null;
-  
+
   try {
     const cookies = document.cookie.split(';').reduce(
       (acc, cookie) => {
@@ -29,7 +30,7 @@ const getConsentState = () => {
       {} as Record<string, string>
     );
 
-    const consentCookie = cookies['cookie-consent'];
+    const consentCookie = cookies[COOKIE_CONSENT_KEY];
     if (!consentCookie) return null;
 
     const parsedCookie = JSON.parse(consentCookie);
@@ -47,8 +48,8 @@ const hasAnalyticsConsent = (): boolean => {
 };
 
 /**
- * Initialize Google Analytics with Consent Mode v2
- * Sets up consent defaults and loads GA script
+ * Initialize Google Analytics with basic consent checking
+ * Only loads GA if user has consented to analytics
  */
 export const initializeGA = (): void => {
   const trackingId = process.env.REACT_APP_GA_TRACKING_ID;
@@ -57,54 +58,48 @@ export const initializeGA = (): void => {
     return;
   }
 
-  // Initialize dataLayer and gtag function first
+  // Check if user has consented to analytics
+  const consentData = getConsentState();
+  if (!consentData?.analytics) {
+    return; // Don't load GA if no analytics consent
+  }
+
+  // Only initialize if not already done
+  if (gaInitialized) {
+    return;
+  }
+
+  // Initialize dataLayer and gtag function
   window.dataLayer = window.dataLayer || [];
   window.gtag = function gtag(...args: unknown[]) {
     window.dataLayer.push(args);
   };
 
-  // Set default consent state (denied) before loading GA - this is required for Consent Mode v2
-  if (!consentInitialized) {
-    window.gtag('consent', 'default', {
-      ad_storage: 'denied',
-      ad_user_data: 'denied',
-      ad_personalization: 'denied',
-      analytics_storage: 'denied',
-      functionality_storage: 'granted', // Essential for site functionality
-      personalization_storage: 'denied',
-      security_storage: 'granted', // Essential for security
-    });
-    consentInitialized = true;
+  // Load the Google Analytics script
+  const script = document.createElement('script');
+  script.async = true;
+  script.src = `https://www.googletagmanager.com/gtag/js?id=${trackingId}`;
+  const firstScript = document.getElementsByTagName('script')[0];
+  if (firstScript && firstScript.parentNode) { 
+    firstScript.parentNode.insertBefore(script, firstScript); 
   }
 
-  // Load the Google Analytics script (this happens regardless of consent)
-  if (!gaInitialized) {
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${trackingId}`;
-    document.head.appendChild(script);
-
-    // Initialize gtag with timestamp
-    window.gtag('js', new Date());
-
-    gaInitialized = true;
-  }
+  // Initialize gtag with timestamp
+  window.gtag('js', new Date());
 
   // Configure GA tracking
   window.gtag('config', trackingId, {
     page_title: document.title,
     page_location: window.location.href,
+    debug_mode: process.env.NODE_ENV === 'development'
   });
 
-  // Update consent based on current user preferences
-  const consentData = getConsentState();
-  if (consentData) {
-    updateGAConsent(consentData);
-  }
+  gaInitialized = true;
 };
 
 /**
- * Update Google Analytics consent based on user preferences
+ * Update Google Analytics based on user consent
+ * Reinitializes GA if analytics consent is granted, or removes it if denied
  */
 export const updateGAConsent = (consentData: {
   necessary: boolean;
@@ -112,24 +107,18 @@ export const updateGAConsent = (consentData: {
   marketing: boolean;
   preferences: boolean;
 }): void => {
-  if (typeof window === 'undefined' || typeof window.gtag !== 'function') {
-    return;
+  if (consentData.analytics && !gaInitialized) {
+    // User granted consent and GA is not loaded - initialize it
+    initializeGA();
+  } else if (!consentData.analytics && gaInitialized) {
+    // User denied consent and GA is loaded - disable tracking
+    // Note: We can't completely unload GA, but we can stop sending events
+    gaInitialized = false;
   }
-
-  // Update consent state using Google Consent Mode v2
-  window.gtag('consent', 'update', {
-    ad_storage: consentData.marketing ? 'granted' : 'denied',
-    ad_user_data: consentData.marketing ? 'granted' : 'denied',
-    ad_personalization: consentData.marketing ? 'granted' : 'denied',
-    analytics_storage: consentData.analytics ? 'granted' : 'denied',
-    functionality_storage: 'granted', // Always granted for essential functionality
-    personalization_storage: consentData.preferences ? 'granted' : 'denied',
-    security_storage: 'granted', // Always granted for security
-  });
 };
 
 /**
- * Check if Google Analytics is loaded and available
+ * Check if Google Analytics is loaded and user has consented
  */
 export const isGALoaded = (): boolean => {
   return (
@@ -150,6 +139,7 @@ export const trackPageView = (path: string, title?: string): void => {
   window.gtag('config', process.env.REACT_APP_GA_TRACKING_ID!, {
     page_path: path,
     page_title: title || document.title,
+    debug_mode: process.env.NODE_ENV === 'development'
   });
 };
 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import clsx from 'clsx';
 import { XMarkIcon, CogIcon, ShieldCheckIcon } from '../icons/MinimalIcons';
-import { useCookieConsent, CookieConsentState } from '../../hooks/useCookieConsent';
+import { useCookieConsent } from '../../hooks/useCookieConsent';
+import { CookieConsentState } from '../../constants/consent';
 
 interface CookieConsentBannerProps {
   className?: string;
