@@ -1,6 +1,12 @@
 import React from 'react';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 export default function Footer() {
+  const analytics = useAnalytics();
+
+  const handleExternalLink = (url: string, linkText: string) => {
+    analytics.trackExternalLink(url, linkText);
+  };
   return (
     <footer className='fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-950/80'>
       <div className='mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8'>
@@ -13,6 +19,7 @@ export default function Footer() {
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+                onClick={() => handleExternalLink('https://github.com/microsoft/fluentui-system-icons', 'Microsoft Fluent UI')}
               >
                 Microsoft Fluent UI
               </a>
@@ -25,6 +32,7 @@ export default function Footer() {
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+                onClick={() => handleExternalLink('https://github.com/microsoft/fluentui-system-icons/blob/main/LICENSE', 'MIT License')}
               >
                 MIT License
               </a>
@@ -37,6 +45,7 @@ export default function Footer() {
               target='_blank'
               rel='noopener noreferrer'
               className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+              onClick={() => handleExternalLink('https://github.com/wictorwilen/fluentui-icons-to-excalidraw', 'GitHub Repository')}
             >
               GitHub
             </a>
@@ -44,10 +53,11 @@ export default function Footer() {
             <span>
               Made with ❤️ by{' '}
               <a
-                href='https://github.com/wictorwilen'
+                href='https://www.wictorwilen.se'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300'
+                onClick={() => handleExternalLink('https://www.wictorwilen.se', 'Wictor Wilén Profile')}
               >
                 Wictor Wilén
               </a>

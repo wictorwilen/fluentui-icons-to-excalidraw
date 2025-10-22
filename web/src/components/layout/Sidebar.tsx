@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRightIcon, StarIconFilled } from '../icons/MinimalIcons';
 import { useFavorites } from '../../hooks/useFavorites';
+import { useAnalytics } from '../../hooks/useAnalytics';
 import clsx from 'clsx';
 
 interface Category {
@@ -31,7 +32,18 @@ export default function Sidebar({
   onClose,
 }: SidebarProps) {
   const { favoritesCount } = useFavorites();
+  const analytics = useAnalytics();
   const sortedCategories = [...categories].sort((a, b) => b.totalCount - a.totalCount);
+
+  const handleCategorySelect = (categoryId: string | null) => {
+    if (categoryId) {
+      const category = categories.find(c => c.id === categoryId);
+      if (category) {
+        analytics.trackCategorySelect(category.name);
+      }
+    }
+    onCategorySelect(categoryId);
+  };
 
   return (
     <>
@@ -63,7 +75,7 @@ export default function Sidebar({
             {/* All Icons */}
             <button
               onClick={() => {
-                onCategorySelect(null);
+                handleCategorySelect(null);
                 if (showFavoritesOnly) onToggleFavorites();
               }}
               className={clsx(
@@ -85,7 +97,7 @@ export default function Sidebar({
                 onToggleFavorites();
                 // Clear category selection when favorites is toggled on
                 if (!showFavoritesOnly && selectedCategory !== null) {
-                  onCategorySelect(null);
+                  handleCategorySelect(null);
                 }
               }}
               className={clsx(
@@ -112,7 +124,7 @@ export default function Sidebar({
               {sortedCategories.map(category => (
                 <button
                   key={category.id}
-                  onClick={() => onCategorySelect(category.id)}
+                  onClick={() => handleCategorySelect(category.id)}
                   className={clsx(
                     'group flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition-colors',
                     selectedCategory === category.id

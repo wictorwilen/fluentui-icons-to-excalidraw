@@ -3,6 +3,7 @@ import { Icon, Emoji } from '../../types';
 import { ClipboardIcon, DownloadIcon } from './MinimalIcons';
 import FavoriteButton from './FavoriteButton';
 import { getExcalidrawUrl, getExcalidrawFetchHeaders } from '../../config/storage';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 interface IconActionsProps {
   item: Icon | Emoji;
@@ -11,6 +12,8 @@ interface IconActionsProps {
 }
 
 const IconActions: React.FC<IconActionsProps> = ({ item, itemType, className = '' }) => {
+  const analytics = useAnalytics();
+
   const handleCopyToClipboard = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -29,6 +32,13 @@ const IconActions: React.FC<IconActionsProps> = ({ item, itemType, className = '
 
       // Copy to clipboard as JSON
       await navigator.clipboard.writeText(JSON.stringify(excalidrawData, null, 2));
+
+      // Track the copy action
+      if (itemType === 'icon') {
+        analytics.trackIconDownload(item.name, 'clipboard');
+      } else {
+        analytics.trackEmojiDownload(item.name, 'clipboard');
+      }
 
       // TODO: Show success toast
       // eslint-disable-next-line no-console
@@ -68,6 +78,13 @@ const IconActions: React.FC<IconActionsProps> = ({ item, itemType, className = '
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      // Track the download action
+      if (itemType === 'icon') {
+        analytics.trackIconDownload(item.name, 'excalidraw');
+      } else {
+        analytics.trackEmojiDownload(item.name, 'excalidraw');
+      }
 
       // eslint-disable-next-line no-console
       console.log('📥 Downloaded:', item.displayName);

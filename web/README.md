@@ -57,6 +57,11 @@ npm install -g azure-functions-core-tools@4 --unsafe-perm true
 Create a `.env.local` file in the `web` directory for optional features:
 
 ```env
+# Google Analytics (optional)
+# Get your GA4 Measurement ID from Google Analytics
+# Format: G-XXXXXXXXXX
+REACT_APP_GA_TRACKING_ID=G-XXXXXXXXXX
+
 # Application Insights (optional for development)
 REACT_APP_APPINSIGHTS_INSTRUMENTATION_KEY=your-key-here
 
@@ -64,6 +69,22 @@ REACT_APP_APPINSIGHTS_INSTRUMENTATION_KEY=your-key-here
 REACT_APP_ENABLE_ANALYTICS=false
 REACT_APP_DEBUG=false
 ```
+
+### Google Analytics Setup
+
+To enable Google Analytics tracking:
+
+1. Create a Google Analytics 4 property at [analytics.google.com](https://analytics.google.com)
+2. Get your Measurement ID (format: `G-XXXXXXXXXX`)
+3. Add it to your `.env.local` file as `REACT_APP_GA_TRACKING_ID`
+4. Deploy or restart your development server
+
+The application tracks:
+- Page views
+- Icon/emoji downloads and clipboard copies
+- Search queries
+- Category selections
+- External link clicks
 
 ### 3. Local Development
 

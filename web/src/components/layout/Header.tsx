@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { MagnifyingGlassIcon, Bars3Icon, XMarkIcon, SunIcon, MoonIcon } from '../icons/MinimalIcons';
 import clsx from 'clsx';
+import { useAnalytics } from '../../hooks/useAnalytics';
 
 interface HeaderProps {
   searchQuery: string;
@@ -20,6 +21,28 @@ export default function Header({
   sidebarOpen,
 }: HeaderProps) {
   const [searchFocused, setSearchFocused] = useState(false);
+  const analytics = useAnalytics();
+  const searchTimeoutRef = useRef<NodeJS.Timeout>();
+
+  // Debounced search tracking to avoid too many events
+  const trackSearch = useCallback((query: string) => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    if (query.trim()) {
+      searchTimeoutRef.current = setTimeout(() => {
+        // In a real implementation, you'd get the results count from the parent component
+        // For now, we'll track the search without results count
+        analytics.trackSearch(query.trim(), 0);
+      }, 1000); // Wait 1 second after user stops typing
+    }
+  }, [analytics]);
+
+  const handleSearchChange = useCallback((query: string) => {
+    onSearchChange(query);
+    trackSearch(query);
+  }, [onSearchChange, trackSearch]);
 
   return (
     <header className='sticky top-0 z-40 border-b border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-950/80'>
@@ -70,7 +93,7 @@ export default function Header({
                 type='text'
                 placeholder='Search icons and emojis...'
                 value={searchQuery}
-                onChange={e => onSearchChange(e.target.value)}
+                onChange={e => handleSearchChange(e.target.value)}
                 onFocus={() => setSearchFocused(true)}
                 onBlur={() => setSearchFocused(false)}
                 className={clsx(
@@ -81,7 +104,7 @@ export default function Header({
               {searchQuery && (
                 <button
                   type='button'
-                  onClick={() => onSearchChange('')}
+                  onClick={() => handleSearchChange('')}
                   className='absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300'
                 >
                   <XMarkIcon className='h-5 w-5' />

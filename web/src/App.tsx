@@ -5,11 +5,16 @@ import Sidebar from './components/layout/Sidebar';
 import Footer from './components/layout/Footer';
 import IconBrowser from './components/icons/IconBrowser';
 import { useLocalStorage } from './hooks/useLocalStorage';
+import { usePageTracking } from './hooks/useAnalytics';
 import { dataService } from './services/dataService';
 import { Category, Icon, Emoji, SearchFilters } from './types';
 import './styles/globals.css';
 
-function App() {
+// Component that handles analytics tracking inside Router context
+function AppContent() {
+  // Initialize page tracking
+  usePageTracking();
+
   // Theme management
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false);
 
@@ -168,7 +173,6 @@ function App() {
   };
 
   return (
-    <Router>
       <div className='flex h-screen bg-gray-50 dark:bg-gray-900'>
         {/* Sidebar */}
         <Sidebar
@@ -241,6 +245,13 @@ function App() {
         {/* Fixed Footer */}
         <Footer />
       </div>
+  );
+}
+
+function App() {
+  return (
+    <Router>
+      <AppContent />
     </Router>
   );
 }
