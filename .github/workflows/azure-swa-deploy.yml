@@ -1,4 +1,4 @@
-name: Deploy Fluent Jot Web App to Azure Static Web Apps
+name: Deploy SWA
 
 on:
   # On-demand deployment only
@@ -159,6 +159,7 @@ jobs:
           # Configure the web app to use blob storage for Excalidraw files
           REACT_APP_USE_BLOB_STORAGE: "true"
           REACT_APP_BLOB_STORAGE_URL: ${{ secrets.AZURE_BLOB_STORAGE_URL }}
+          REACT_APP_GA_TRACKING_ID: "G-9WW1NLBJN3"
 
       - name: Deployment summary
         if: success()
