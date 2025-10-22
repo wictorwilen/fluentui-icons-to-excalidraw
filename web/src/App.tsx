@@ -7,6 +7,7 @@ import IconBrowser from './components/icons/IconBrowser';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { usePageTracking } from './hooks/useAnalytics';
 import { dataService } from './services/dataService';
+import { initializeGA } from './services/analytics';
 import { Category, Icon, Emoji, SearchFilters } from './types';
 import './styles/globals.css';
 
@@ -17,6 +18,11 @@ function AppContent() {
 
   // Theme management
   const [isDarkMode, setIsDarkMode] = useLocalStorage('darkMode', false);
+
+  // Initialize Google Analytics
+  useEffect(() => {
+    initializeGA();
+  }, []);
 
   // Search and filtering
   const [searchQuery, setSearchQuery] = useState('');

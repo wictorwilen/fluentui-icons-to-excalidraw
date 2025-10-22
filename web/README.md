@@ -79,12 +79,15 @@ To enable Google Analytics tracking:
 3. Add it to your `.env.local` file as `REACT_APP_GA_TRACKING_ID`
 4. Deploy or restart your development server
 
+The Google Analytics script is loaded dynamically at runtime when a valid tracking ID is provided, ensuring optimal performance and compatibility with different deployment environments.
+
 The application tracks:
-- Page views
+- Page views and route changes
 - Icon/emoji downloads and clipboard copies
-- Search queries
-- Category selections
+- Search queries (debounced to avoid spam)
+- Category selections and filtering
 - External link clicks
+- Application errors for debugging
 
 ### 3. Local Development
 
