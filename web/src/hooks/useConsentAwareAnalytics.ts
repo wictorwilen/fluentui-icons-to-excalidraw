@@ -1,30 +1,24 @@
 import { useEffect } from 'react';
 import { useCookieConsent } from './useCookieConsent';
-import { initializeGA, enableAnalytics, disableAnalytics } from '../services/analytics';
+import { initializeGA, updateGAConsent } from '../services/analytics';
 
 /**
- * Hook that manages Google Analytics initialization based on cookie consent
+ * Hook that manages Google Analytics initialization with Consent Mode v2
  */
 export function useConsentAwareAnalytics() {
   const { consentState, hasConsent } = useCookieConsent();
 
-  useEffect(() => {
-    if (!hasConsent) {
-      // No consent decision made yet, don't initialize analytics
-      return;
-    }
-
-    if (consentState?.analytics) {
-      // Analytics consent granted, initialize or enable GA
-      enableAnalytics();
-    } else {
-      // Analytics consent not granted or revoked, disable GA
-      disableAnalytics();
-    }
-  }, [consentState, hasConsent]);
-
-  // Initial GA setup (will only initialize if consent is already granted)
+  // Initialize GA immediately to set up consent defaults
+  // This is required for Google Consent Mode v2 - we need to load GA with denied consent first
   useEffect(() => {
     initializeGA();
   }, []);
+
+  // Update consent when user makes a decision
+  useEffect(() => {
+    if (hasConsent && consentState) {
+      // User has made a consent decision, update GA consent
+      updateGAConsent(consentState);
+    }
+  }, [consentState, hasConsent]);
 }

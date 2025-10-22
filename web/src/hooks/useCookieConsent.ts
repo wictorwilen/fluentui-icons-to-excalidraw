@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useCookies } from 'react-cookie';
+import { updateGAConsent } from '../services/analytics';
 
 export interface CookieConsentState {
   necessary: boolean;
@@ -48,12 +49,12 @@ export function useCookieConsent(): CookieConsentHook {
 
   const saveConsent = (state: CookieConsentState) => {
     const consentData = {
-      state,
       version: COOKIE_CONSENT_VERSION,
+      state,
       timestamp: new Date().toISOString(),
     };
 
-    // Set cookie to expire in 1 year
+    // Calculate expiry date (1 year from now)
     const expiryDate = new Date();
     expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
@@ -63,6 +64,9 @@ export function useCookieConsent(): CookieConsentHook {
       sameSite: 'lax',
       secure: window.location.protocol === 'https:',
     });
+
+    // Update Google Analytics consent
+    updateGAConsent(state);
 
     setConsentState(state);
     setShowBanner(false);
