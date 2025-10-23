@@ -6,7 +6,7 @@ import IconActions from './IconActions';
 import { useFavorites } from '../../hooks/useFavorites';
 
 // Constants
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 24;
 
 interface IconBrowserProps {
   icons: Icon[];
