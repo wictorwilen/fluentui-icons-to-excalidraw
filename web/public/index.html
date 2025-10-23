@@ -45,6 +45,27 @@
     </script>
     
     <title>Fluent Jot - Hand-drawn Fluent UI Icons & Emojis</title>
+    
+    <!-- Google Analytics - Only load if tracking ID is provided -->
+    <script>
+      // Only initialize if we have a tracking ID
+      if ('%REACT_APP_GA_TRACKING_ID%' && '%REACT_APP_GA_TRACKING_ID%' !== '' && !('%REACT_APP_GA_TRACKING_ID%'.startsWith('%'))) {
+        // Global site tag (gtag.js) - Google Analytics
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        
+        // Set default state - don't track until consent is given
+        gtag('js', new Date());
+        gtag('config', '%REACT_APP_GA_TRACKING_ID%', {
+          send_page_view: false, // Don't send page view until consent
+          debug_mode: '%NODE_ENV%' === 'development'
+        });
+        
+        // Store the tracking ID for the app to use
+        window.GA_TRACKING_ID = '%REACT_APP_GA_TRACKING_ID%';
+      }
+    </script>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=%REACT_APP_GA_TRACKING_ID%"></script>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>

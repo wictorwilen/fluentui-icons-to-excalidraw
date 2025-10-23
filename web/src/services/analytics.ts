@@ -1,18 +1,18 @@
 /**
- * Google Analytics tracking utilities with basic consent support
+ * Google Analytics tracking utilities with consent support
+ * GA script is loaded in index.html, this service manages consent and tracking
  */
 
 import { COOKIE_CONSENT_KEY } from '../constants/consent';
 
-// Extend the Window interface to include gtag
+// Extend the Window interface to include gtag and GA_TRACKING_ID
 declare global {
   interface Window {
     gtag: (...args: unknown[]) => void;
     dataLayer: unknown[];
+    GA_TRACKING_ID?: string;
   }
 }
-
-let gaInitialized = false;
 
 /**
  * Get current consent state from cookies
@@ -48,58 +48,36 @@ const hasAnalyticsConsent = (): boolean => {
 };
 
 /**
- * Initialize Google Analytics with basic consent checking
- * Only loads GA if user has consented to analytics
+ * Initialize Google Analytics tracking
+ * GA script is already loaded in index.html, this just enables tracking if consented
  */
 export const initializeGA = (): void => {
-  const trackingId = process.env.REACT_APP_GA_TRACKING_ID;
-
-  if (!trackingId || typeof window === 'undefined') {
+  if (!isGAAvailable()) {
     return;
   }
 
-  // Check if user has consented to analytics
+  // Enable page view tracking if user has consented
   const consentData = getConsentState();
-  if (!consentData?.analytics) {
-    return; // Don't load GA if no analytics consent
+  if (consentData?.analytics) {
+    enableGATracking();
   }
+};
 
-  // Only initialize if not already done
-  if (gaInitialized) {
-    return;
-  }
+/**
+ * Enable GA tracking by sending initial page view
+ */
+const enableGATracking = (): void => {
+  if (!isGAAvailable()) return;
 
-  // Initialize dataLayer and gtag function
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
-  };
-
-  // Load the Google Analytics script
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${trackingId}`;
-  const firstScript = document.getElementsByTagName('script')[0];
-  if (firstScript && firstScript.parentNode) { 
-    firstScript.parentNode.insertBefore(script, firstScript); 
-  }
-
-  // Initialize gtag with timestamp
-  window.gtag('js', new Date());
-
-  // Configure GA tracking
-  window.gtag('config', trackingId, {
+  window.gtag('config', window.GA_TRACKING_ID!, {
     page_title: document.title,
     page_location: window.location.href,
-    debug_mode: process.env.NODE_ENV === 'development'
+    send_page_view: true
   });
-
-  gaInitialized = true;
 };
 
 /**
  * Update Google Analytics based on user consent
- * Reinitializes GA if analytics consent is granted, or removes it if denied
  */
 export const updateGAConsent = (consentData: {
   necessary: boolean;
@@ -107,27 +85,31 @@ export const updateGAConsent = (consentData: {
   marketing: boolean;
   preferences: boolean;
 }): void => {
-  if (consentData.analytics && !gaInitialized) {
-    // User granted consent and GA is not loaded - initialize it
-    initializeGA();
-  } else if (!consentData.analytics && gaInitialized) {
-    // User denied consent and GA is loaded - disable tracking
-    // Note: We can't completely unload GA, but we can stop sending events
-    gaInitialized = false;
+  if (!isGAAvailable()) return;
+
+  if (consentData.analytics) {
+    // User granted consent - enable tracking
+    enableGATracking();
   }
+  // Note: We can't disable GA once loaded, but we check consent before each tracking call
 };
 
 /**
- * Check if Google Analytics is loaded and user has consented
+ * Check if Google Analytics is available (script loaded from index.html)
  */
-export const isGALoaded = (): boolean => {
+const isGAAvailable = (): boolean => {
   return (
     typeof window !== 'undefined' &&
     typeof window.gtag === 'function' &&
-    !!process.env.REACT_APP_GA_TRACKING_ID &&
-    gaInitialized &&
-    hasAnalyticsConsent()
+    !!window.GA_TRACKING_ID
   );
+};
+
+/**
+ * Check if Google Analytics is available and user has consented
+ */
+export const isGALoaded = (): boolean => {
+  return isGAAvailable() && hasAnalyticsConsent();
 };
 
 /**
@@ -136,10 +118,9 @@ export const isGALoaded = (): boolean => {
 export const trackPageView = (path: string, title?: string): void => {
   if (!isGALoaded()) return;
 
-  window.gtag('config', process.env.REACT_APP_GA_TRACKING_ID!, {
+  window.gtag('config', window.GA_TRACKING_ID!, {
     page_path: path,
-    page_title: title || document.title,
-    debug_mode: process.env.NODE_ENV === 'development'
+    page_title: title || document.title
   });
 };
 

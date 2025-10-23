@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.10.23] - 2025-10-23 07:41:28 UTC
+
+
+### Changed
+- **Moved Google Analytics to HTML**: Relocated GA initialization script from JavaScript to index.html using %REACT_APP_GA_TRACKING_ID% environment variable substitution for improved performance and simpler management
+
 ## [2025.10.22] - 2025-10-22 18:32:56 UTC
 
 
