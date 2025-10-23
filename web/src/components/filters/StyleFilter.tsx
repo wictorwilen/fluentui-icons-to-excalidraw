@@ -1,5 +1,6 @@
 import React from 'react';
 import clsx from 'clsx';
+import { trackStyleSelection } from '../../services/analytics';
 
 interface StyleFilterProps {
   selectedStyles: ('regular' | 'filled' | 'light' | 'flat' | 'color')[];
@@ -31,20 +32,33 @@ export default function StyleFilter({
   className,
 }: StyleFilterProps) {
   const handleStyleToggle = (style: 'regular' | 'filled' | 'light' | 'flat' | 'color') => {
+    let newStyles: ('regular' | 'filled' | 'light' | 'flat' | 'color')[];
+    
     if (selectedStyles.includes(style)) {
       // Remove the style
-      onStylesChange(selectedStyles.filter(s => s !== style));
+      newStyles = selectedStyles.filter(s => s !== style);
     } else {
       // Add the style
-      onStylesChange([...selectedStyles, style]);
+      newStyles = [...selectedStyles, style];
     }
+    
+    // Track the style selection change
+    trackStyleSelection(newStyles, availableStyles.length);
+    
+    onStylesChange(newStyles);
   };
 
   const handleSelectAll = () => {
+    // Track selecting all styles
+    trackStyleSelection(availableStyles, availableStyles.length);
+    
     onStylesChange(availableStyles);
   };
 
   const handleClearAll = () => {
+    // Track clearing all styles
+    trackStyleSelection([], availableStyles.length);
+    
     onStylesChange([]);
   };
 

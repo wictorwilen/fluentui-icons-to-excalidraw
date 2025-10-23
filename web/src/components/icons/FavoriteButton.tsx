@@ -2,6 +2,7 @@ import React from 'react';
 import { Icon, Emoji } from '../../types';
 import { useFavorites } from '../../hooks/useFavorites';
 import { StarIcon, StarIconFilled } from './MinimalIcons';
+import { trackFavoriteToggle } from '../../services/analytics';
 
 interface FavoriteButtonProps {
   item: Icon | Emoji;
@@ -18,6 +19,12 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ item, itemType, classNa
     e.preventDefault();
     e.stopPropagation();
 
+    const action = isItemFavorite ? 'remove' : 'add';
+    const itemName = item.name || item.id;
+    
+    // Track the favorite toggle event
+    trackFavoriteToggle(itemType, itemName, action);
+    
     toggleFavorite(item, itemType);
   };
 

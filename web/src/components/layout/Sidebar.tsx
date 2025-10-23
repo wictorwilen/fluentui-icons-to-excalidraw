@@ -2,6 +2,7 @@ import React from 'react';
 import { ChevronRightIcon, StarIconFilled } from '../icons/MinimalIcons';
 import { useFavorites } from '../../hooks/useFavorites';
 import { useAnalytics } from '../../hooks/useAnalytics';
+import { trackFilter } from '../../services/analytics';
 import clsx from 'clsx';
 
 interface Category {
@@ -94,6 +95,9 @@ export default function Sidebar({
             {/* Favorites */}
             <button
               onClick={() => {
+                // Track favorites filter toggle
+                trackFilter('favorites', showFavoritesOnly ? 'off' : 'on');
+                
                 onToggleFavorites();
                 // Clear category selection when favorites is toggled on
                 if (!showFavoritesOnly && selectedCategory !== null) {

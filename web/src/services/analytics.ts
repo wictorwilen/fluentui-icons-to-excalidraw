@@ -197,3 +197,39 @@ export const trackExternalLink = (url: string, linkText: string): void => {
 export const trackError = (errorType: string, errorMessage: string): void => {
   trackEvent('error', 'application', `${errorType}: ${errorMessage}`);
 };
+
+/**
+ * Track favorite toggle events
+ */
+export const trackFavoriteToggle = (
+  itemType: 'icon' | 'emoji',
+  itemName: string,
+  action: 'add' | 'remove'
+): void => {
+  trackEvent(`favorite_${action}`, itemType, itemName);
+};
+
+/**
+ * Track style selection changes
+ */
+export const trackStyleSelection = (
+  selectedStyles: string[],
+  totalAvailableStyles: number
+): void => {
+  const selectedCount = selectedStyles.length;
+  const stylesList = selectedStyles.sort().join(', ') || 'none';
+  
+  trackEvent('style_filter', 'filter', stylesList, selectedCount);
+  
+  // Track specific analytics about style selection behavior
+  if (selectedCount === 0) {
+    trackEvent('style_filter_cleared', 'filter', 'all_styles_deselected');
+  } else if (selectedCount === totalAvailableStyles) {
+    trackEvent('style_filter_all', 'filter', 'all_styles_selected');
+  } else {
+    // Track individual popular styles
+    selectedStyles.forEach(style => {
+      trackEvent('style_selected', 'filter', style);
+    });
+  }
+};
