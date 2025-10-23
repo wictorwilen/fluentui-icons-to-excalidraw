@@ -50,13 +50,13 @@ export default function Sidebar({
     <>
       {/* Mobile overlay */}
       {isOpen && (
-        <div className='fixed inset-0 z-30 bg-black bg-opacity-25 md:hidden' onClick={onClose} />
+        <div className='fixed inset-0 z-40 bg-black bg-opacity-25 md:hidden' onClick={onClose} />
       )}
 
       {/* Sidebar */}
       <div
         className={clsx(
-          'fixed inset-y-0 left-0 z-40 w-64 transform overflow-y-auto border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900 md:relative md:translate-x-0',
+          'fixed inset-y-0 left-0 z-10 mb-4 w-64 transform overflow-y-auto border-r border-gray-200 bg-white transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900 md:relative md:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full'
         )}
       >

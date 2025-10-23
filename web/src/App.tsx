@@ -182,16 +182,7 @@ function AppContent() {
 
   return (
     <div className='flex h-screen bg-gray-50 dark:bg-gray-900'>
-      {/* Sidebar */}
-      <Sidebar
-        categories={categories}
-        selectedCategory={selectedCategory}
-        onCategorySelect={handleCategorySelect}
-        showFavoritesOnly={showFavoritesOnly}
-        onToggleFavorites={handleToggleFavorites}
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+
 
       {/* Main content */}
       <div className='flex flex-1 flex-col overflow-hidden'>
@@ -205,49 +196,61 @@ function AppContent() {
           sidebarOpen={sidebarOpen}
           onShowCookiePreferences={() => setShowCookiePreferences(true)}
         />
-
-        {/* Main content area */}
-        <main className='flex-1 overflow-y-auto'>
-          <div className='mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8'>
-            {/* Hero section */}
-            {!searchQuery && !selectedCategory && !showFavoritesOnly && (
-              <div className='mb-8 text-center'>
-                <h1 className='mb-4 text-4xl font-bold text-gray-900 dark:text-gray-100'>
-                  <span className='text-gradient'>Fluent Jot</span>
-                </h1>
-                <p className='mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300'>
-                  Browse and download Microsoft's Fluent UI icons and emojis in beautiful hand-drawn
-                  Excalidraw format. Perfect for wireframes, mockups, and design sketches.
-                </p>
-                <div className='mt-6 flex flex-wrap justify-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
-                  <span className='flex items-center'>
-                    <span className='mr-2 h-2 w-2 rounded-full bg-primary-500'></span>
-                    5,980+ Icons
-                  </span>
-                  <span className='flex items-center'>
-                    <span className='mr-2 h-2 w-2 rounded-full bg-accent-500'></span>
-                    1,595+ Emojis
-                  </span>
-                  <span className='flex items-center'>
-                    <span className='mr-2 h-2 w-2 rounded-full bg-green-500'></span>
-                    Free to Use
-                  </span>
+        <div className='flex flex-1 overflow-scroll'>
+          {/* Sidebar */}
+          <Sidebar
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onCategorySelect={handleCategorySelect}
+            showFavoritesOnly={showFavoritesOnly}
+            onToggleFavorites={handleToggleFavorites}
+            isOpen={sidebarOpen}
+            onClose={() => setSidebarOpen(false)}
+          />
+          {/* Main content area */}
+          <main className='flex-1 overflow-y-auto'>
+            <div className='mx-auto max-w-7xl px-4 py-6 pb-20 sm:px-6 lg:px-8'>
+              {/* Hero section */}
+              {!searchQuery && !selectedCategory && !showFavoritesOnly && (
+                <div className='mb-8 text-center'>
+                  <h1 className='mb-4 text-4xl font-bold text-gray-900 dark:text-gray-100'>
+                    <span className='text-gradient'>Fluent Jot</span>
+                  </h1>
+                  <p className='mx-auto max-w-2xl text-lg text-gray-600 dark:text-gray-300'>
+                    Browse and download Microsoft's Fluent UI icons and emojis in beautiful hand-drawn
+                    Excalidraw format. Perfect for wireframes, mockups, and design sketches.
+                  </p>
+                  <div className='mt-6 flex flex-wrap justify-center gap-4 text-sm text-gray-500 dark:text-gray-400'>
+                    <span className='flex items-center'>
+                      <span className='mr-2 h-2 w-2 rounded-full bg-primary-500'></span>
+                      5,980+ Icons
+                    </span>
+                    <span className='flex items-center'>
+                      <span className='mr-2 h-2 w-2 rounded-full bg-accent-500'></span>
+                      1,595+ Emojis
+                    </span>
+                    <span className='flex items-center'>
+                      <span className='mr-2 h-2 w-2 rounded-full bg-green-500'></span>
+                      Free to Use
+                    </span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Icon Browser */}
-            <IconBrowser
-              icons={icons}
-              emojis={emojis}
-              categories={categories}
-              searchFilters={searchFilters}
-              onStylesChange={handleStylesChange}
-              isLoading={isLoading}
-              error={error}
-            />
-          </div>
-        </main>
+              {/* Icon Browser */}
+              <IconBrowser
+                icons={icons}
+                emojis={emojis}
+                categories={categories}
+                searchFilters={searchFilters}
+                onStylesChange={handleStylesChange}
+                isLoading={isLoading}
+                error={error}
+              />
+            </div>
+          </main>
+        </div>
+
       </div>
 
       {/* Fixed Footer */}

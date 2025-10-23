@@ -12,7 +12,7 @@ export default function Footer({ onShowCookiePreferences }: FooterProps) {
     analytics.trackExternalLink(url, linkText);
   };
   return (
-    <footer className='fixed bottom-0 left-0 right-0 z-10 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-950/80'>
+    <footer className='fixed bottom-0 left-0 right-0 z-40 border-t border-gray-200 bg-white/80 backdrop-blur-sm dark:border-gray-700 dark:bg-gray-950/80'>
       <div className='mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8'>
         <div className='flex flex-col items-center justify-between gap-2 text-xs text-gray-500 dark:text-gray-400 sm:flex-row sm:gap-0'>
           <div className='flex flex-col items-center gap-1 sm:flex-row sm:gap-4'>
